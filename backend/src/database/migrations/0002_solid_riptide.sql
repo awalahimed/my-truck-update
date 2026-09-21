@@ -1,0 +1,1 @@
+ALTER TABLE `user` ADD `fcm_token` text;

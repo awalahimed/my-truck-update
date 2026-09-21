@@ -1,0 +1,1 @@
+ALTER TABLE `announcement` MODIFY COLUMN `message` longtext NOT NULL;

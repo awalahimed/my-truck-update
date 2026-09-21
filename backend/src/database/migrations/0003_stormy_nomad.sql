@@ -1,0 +1,1 @@
+ALTER TABLE `notification` ADD `data` text;

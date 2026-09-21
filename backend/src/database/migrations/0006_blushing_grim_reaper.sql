@@ -1,0 +1,1 @@
+ALTER TABLE `wallet` ADD `reserved_balance` decimal(10,2) DEFAULT '0.00' NOT NULL;

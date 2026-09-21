@@ -1,0 +1,175 @@
+# Root level gitignore for My-Track project
+
+# Environment files (all levels)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+**/.env
+**/.env.local
+**/.env.development
+**/.env.test
+**/.env.production
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+**/dist/
+**/build/
+
+# Logs
+*.log
+logs/
+**/logs/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Certificates and keys
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.p8
+*.jks
+*.keystore
+
+# cPanel deployment keys
+cpanel_deploy_key
+cpanel_deploy_key.pub
+
+# Firebase
+firebase-service-account.json
+serviceAccountKey.json
+google-services.json
+GoogleService-Info.plist
+
+# Upload directories
+uploads/
+**/uploads/
+
+# Coverage reports
+coverage/
+**/coverage/
+
+# Package manager lock files (keep package-lock.json for Docker builds)
+yarn.lock
+pnpm-lock.yaml
+
+# TypeScript
+*.tsbuildinfo
+
+# Local development
+*.local
+
+# -------------------------
+# Re-include specific files that are otherwise ignored
+# (unignore parent directories first, then the exact files)
+
+# Allow VS Code launch config
+!.vscode/
+!.vscode/launch.json
+
+# Re-include dist and selected subfolders
+!dist/
+!dist/commands/
+!dist/controllers/
+!dist/controllers/admin/
+!dist/database/
+!dist/database/schema/
+!dist/jobs/
+!dist/services/
+!dist/utils/
+
+# Specific files to track
+!dist/controllers/admin/agent.d.ts
+!dist/controllers/admin/agent.d.ts.map
+!dist/controllers/admin/agent.js
+!dist/controllers/admin/agent.js.map
+!dist/controllers/admin/driver.d.ts
+!dist/controllers/admin/driver.d.ts.map
+!dist/controllers/admin/driver.js
+!dist/controllers/admin/driver.js.map
+!dist/controllers/admin/user.d.ts
+!dist/controllers/admin/user.d.ts.map
+!dist/controllers/admin/user.js
+!dist/controllers/admin/user.js.map
+
+!dist/controllers/agent.d.ts
+!dist/controllers/agent.d.ts.map
+!dist/controllers/agent.js
+!dist/controllers/agent.js.map
+!dist/controllers/manager.d.ts
+!dist/controllers/manager.d.ts.map
+!dist/controllers/manager.js
+!dist/controllers/manager.js.map
+
+!dist/database/schema/agent-schema.d.ts
+!dist/database/schema/agent-schema.d.ts.map
+!dist/database/schema/agent-schema.js
+!dist/database/schema/agent-schema.js.map
+!dist/database/schema/commission-schema.d.ts
+!dist/database/schema/commission-schema.d.ts.map
+!dist/database/schema/commission-schema.js
+!dist/database/schema/commission-schema.js.map
+!dist/database/schema/manager-schema.d.ts
+!dist/database/schema/manager-schema.d.ts.map
+!dist/database/schema/manager-schema.js
+!dist/database/schema/manager-schema.js.map
+
+!dist/jobs/daily-fraud-scan.d.ts
+!dist/jobs/daily-fraud-scan.d.ts.map
+!dist/jobs/daily-fraud-scan.js
+!dist/jobs/daily-fraud-scan.js.map
+
+!dist/services/commission.d.ts
+!dist/services/commission.d.ts.map
+!dist/services/commission.js
+!dist/services/commission.js.map
+!dist/services/manager.d.ts
+!dist/services/manager.d.ts.map
+!dist/services/manager.js
+!dist/services/manager.js.map
+
+!dist/utils/email-templates.d.ts
+!dist/utils/email-templates.d.ts.map
+!dist/utils/email-templates.js
+!dist/utils/email-templates.js.map
+!dist/utils/email.d.ts
+!dist/utils/email.d.ts.map
+!dist/utils/email.js
+!dist/utils/email.js.map
+!dist/utils/retry.d.ts
+!dist/utils/retry.d.ts.map
+!dist/utils/retry.js
+!dist/utils/retry.js.map

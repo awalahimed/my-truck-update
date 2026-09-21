@@ -1,0 +1,69 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - PORT=${PORT}
+      - MYSQL_HOST=db
+      - MYSQL_PORT=${MYSQL_PORT}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - BETTERAUTH_BASE_URL=${BETTERAUTH_BASE_URL}
+      - CHAPA_SECRET_KEY=${CHAPA_SECRET_KEY}
+      - CHAPA_PUBLIC_KEY=${CHAPA_PUBLIC_KEY}
+      - CHAPA_BASE_URL=${CHAPA_BASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRY=${JWT_EXPIRY}
+      - JWT_REFRESH_EXPIRY=${JWT_REFRESH_EXPIRY}
+      - JWT_ISSUER=${JWT_ISSUER}
+      - JWT_AUDIENCE=${JWT_AUDIENCE}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - ETHIOSMS_API_KEY=${ETHIOSMS_API_KEY}
+      - ETHIOSMS_BASE_URL=${ETHIOSMS_BASE_URL}
+      - LOGIN_ENABLED=${LOGIN_ENABLED}
+      - REGISTER_ENABLED=${REGISTER_ENABLED}
+      - FORGOT_PASSWORD_ENABLED=${FORGOT_PASSWORD_ENABLED}
+      - OTP_ENABLED=${OTP_ENABLED}
+      - PHONE_OTP_REQUIRED=${PHONE_OTP_REQUIRED}
+      - OTP_CODE_LENGTH=${OTP_CODE_LENGTH}
+      - OTP_TTL_SECONDS=${OTP_TTL_SECONDS}
+      - UPLOAD_DIR=${UPLOAD_DIR}
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE}
+      - CHUNK_SIZE=${CHUNK_SIZE}
+      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
+      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
+      - AUTH_RATE_LIMIT_WINDOW_MS=${AUTH_RATE_LIMIT_WINDOW_MS}
+      - AUTH_RATE_LIMIT_MAX=${AUTH_RATE_LIMIT_MAX}
+      - LOG_LEVEL=${LOG_LEVEL}
+    volumes:
+      - uploads_data:/app/uploads
+
+volumes:
+  mysql_data:
+  uploads_data:

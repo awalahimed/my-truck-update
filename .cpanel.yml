@@ -1,0 +1,44 @@
+---
+# cPanel Deployment Configuration for My-Track Backend
+# This file defines how your repository deploys to cPanel hosting
+
+deployment:
+  tasks:
+    # Set the deployment path
+    - export DEPLOYPATH=/home/beonadvz/public_html/mytruck
+    
+    # Create necessary directories if they don't exist
+    - mkdir -p $DEPLOYPATH
+    - mkdir -p $DEPLOYPATH/dist
+    - mkdir -p $DEPLOYPATH/src
+    - mkdir -p $DEPLOYPATH/uploads
+    - mkdir -p $DEPLOYPATH/node_modules
+    
+    # Copy compiled backend build from dist
+    - /bin/cp -R backend/dist $DEPLOYPATH/
+    
+    # Copy source files (for database migrations)
+    - /bin/cp -R backend/src $DEPLOYPATH/
+    - /bin/cp backend/drizzle.config.ts $DEPLOYPATH/
+    
+    # Copy package.json for dependencies
+    - /bin/cp backend/package.json $DEPLOYPATH/
+    
+    # Copy environment example (DO NOT copy actual .env file for security)
+    - /bin/cp backend/.env.example $DEPLOYPATH/
+    
+    # Copy frontend build files
+    - /bin/cp -R backend/front-end-build $DEPLOYPATH/
+    
+    # Set proper permissions
+    - chmod 755 $DEPLOYPATH
+    - chmod -R 644 $DEPLOYPATH/*.json
+    - chmod -R 755 $DEPLOYPATH/dist
+    - chmod -R 755 $DEPLOYPATH/node_modules
+    
+    # Create uploads directory with write permissions
+    - mkdir -p $DEPLOYPATH/uploads
+    - chmod 755 $DEPLOYPATH/uploads
+    
+    # Install production dependencies only
+    - cd $DEPLOYPATH && npm install --production
