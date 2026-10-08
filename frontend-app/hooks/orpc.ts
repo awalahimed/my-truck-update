@@ -3,7 +3,7 @@ import { createORPCClient } from '@orpc/client'
 import { RPCLink } from '@orpc/client/fetch'
 import type { AppRouter } from 'backend/routes/_app'
 import { config } from '../config/config'
-import * as SecureStore from 'expo-secure-store'
+import { SecureStore } from '@/utils/storage'
 
 let isRefreshing = false
 

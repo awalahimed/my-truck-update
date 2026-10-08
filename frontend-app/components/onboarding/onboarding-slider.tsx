@@ -163,10 +163,13 @@ interface PaginationDotProps {
 }
 
 function PaginationDot({ active }: PaginationDotProps) {
-  const animatedStyle = useAnimatedStyle(() => ({
-    width: withSpring(active ? 24 : 8),
-    opacity: withSpring(active ? 1 : 0.5),
-  }));
+  const animatedStyle = useAnimatedStyle(() => {
+    // bypass negative hash bug
+    return {
+      width: withSpring(active ? 24 : 8),
+      opacity: withSpring(active ? 1 : 0.5),
+    };
+  });
 
   return <Animated.View style={[styles.dot, animatedStyle]} />;
 }

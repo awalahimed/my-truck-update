@@ -51,7 +51,7 @@ export default function LoginScreen() {
       setPhoneError('Phone number is too long');
       return false;
     }
-    if (!/^[0-9]+$/.test(value)) {
+    if (!/^\+?[0-9]+$/.test(value)) {
       setPhoneError('Phone number must contain only digits');
       return false;
     }

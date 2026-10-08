@@ -1,9 +1,15 @@
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+
 // Safe import for expo-notifications
 let Notifications: any = null
 
 try {
-  // Try to import expo-notifications
-  Notifications = require('expo-notifications')
+  // Only try to import expo-notifications if we are NOT in Expo Go
+  if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
+    Notifications = require('expo-notifications')
+  } else {
+    console.log('Running in Expo Go - push notifications disabled');
+  }
 } catch (error) {
   console.log('expo-notifications not available in this build')
 }

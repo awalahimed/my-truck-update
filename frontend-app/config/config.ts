@@ -27,7 +27,7 @@ const DEFAULT_PORT = '3002';
 const WS_PORT = '8080';
 
 // Check if we're in development mode
-const isDevelopment = false;
+const isDevelopment = __DEV__;
 
 // Production URLs - hardcoded for one.beonadvert.com
 const baseUrl = isDevelopment

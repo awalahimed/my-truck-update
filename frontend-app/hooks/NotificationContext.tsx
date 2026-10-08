@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { orpc } from './orpc';
+import { useAuth } from './AuthContext';
 
 interface NotificationContextType {
   unreadCount: number;
@@ -20,7 +21,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
     } catch (error: any) {
       // Silently ignore session expired errors - user will be redirected to login by auth context
-      if (error?.message !== 'Session expired' && error?.message !== 'Not Found') {
+      const ignoredErrors = ['Session expired', 'Not Found', 'Unauthorized'];
+      if (!ignoredErrors.includes(error?.message)) {
         console.error('Failed to fetch unread count:', error);
       }
     }
@@ -30,15 +32,19 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
-  // Fetch on mount
+  const { isAuthenticated } = useAuth();
+
+  // Fetch on mount and setup polling when authenticated
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     refreshUnreadCount();
     
     // Poll every 30 seconds
     const interval = setInterval(refreshUnreadCount, 30000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [isAuthenticated]);
 
   return (
     <NotificationContext.Provider value={{ unreadCount, refreshUnreadCount, decrementUnreadCount }}>

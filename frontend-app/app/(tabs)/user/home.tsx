@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAlert } from '@/components/shared/CustomAlert';
-import { View, StyleSheet, StatusBar, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, StatusBar, TouchableOpacity, Text, Alert, Linking } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
@@ -435,7 +435,26 @@ function UserHome() {
         <View style={[styles.orderButtons, { backgroundColor: colors.primary }]}>
           <TouchableOpacity 
             style={[styles.orderButton, styles.deliveryButton]}
-            onPress={() => setShowDeliverySheet(true)}
+            onPress={() => {
+              Alert.alert(
+                'How would you like to post your load?',
+                'Choose an option below to proceed.',
+                [
+                  {
+                    text: 'Option 1: Post by App',
+                    onPress: () => setShowDeliverySheet(true)
+                  },
+                  {
+                    text: 'Option 2: Contact Call Center',
+                    onPress: () => Linking.openURL('tel:+251912345678')
+                  },
+                  {
+                    text: 'Cancel',
+                    style: 'cancel'
+                  }
+                ]
+              );
+            }}
           >
             <Truck size={20} color={colors.white} />
             <Text style={[styles.buttonText, { color: colors.white }]}>Delivery</Text>

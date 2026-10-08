@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { SecureStore } from '@/utils/storage';
 import { orpc } from './orpc';
 import { tokenStorage, type AuthUser } from '../utils/tokenStorage';
 import { useNetworkState } from './useNetworkState';
