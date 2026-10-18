@@ -147,7 +147,7 @@ export default function Documents() {
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
-          onPress={() => router.back()}
+          onPress={() => router.replace('/(tabs)/driver/home')}
         >
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>

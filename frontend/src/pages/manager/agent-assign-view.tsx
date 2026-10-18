@@ -132,7 +132,7 @@ export default function AgentAssignView() {
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const names = [...new Set(data.elements.map((e: any) => e.tags?.name).filter(Boolean))].sort();
+      const names = ([...new Set(data.elements.map((e: any) => e.tags?.name).filter(Boolean))].sort()) as string[];
       citiesCache.current = names;
       setEthiopianCities(names);
     } catch (e) {
@@ -153,7 +153,7 @@ export default function AgentAssignView() {
       if (res.status === 429) throw new Error("Rate limited");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const names = [...new Set(data.map((p: any) => p.display_name.split(",")[0].trim()).filter(Boolean))].sort();
+      const names = ([...new Set(data.map((p: any) => p.display_name.split(",")[0].trim()).filter(Boolean))].sort()) as string[];
       setCityTowns(names);
     } catch (e) {
       console.error("Failed to fetch towns:", e);

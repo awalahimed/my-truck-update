@@ -7,8 +7,8 @@ export interface AuthUser {
   name: string
   email: string
   image: string | null
-  phoneNumber: string
-  phoneNumberVerified: boolean
+  phoneNumber: string | null
+  phoneNumberVerified?: boolean | null
   role: string
   accountStatus?: string
   banned?: boolean

@@ -23,7 +23,7 @@ interface Notification {
   message: string;
   type: string;
   read: boolean;
-  createdAt: string;
+  createdAt: string | Date;
 }
 
 export default function Notifications() {
@@ -94,7 +94,7 @@ export default function Notifications() {
     }
   };
 
-  const formatTime = (dateString: string) => {
+  const formatTime = (dateString: string | Date) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
@@ -114,7 +114,16 @@ export default function Notifications() {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => {
+            if (session?.user?.role === 'driver') {
+              router.replace('/(tabs)/driver/home');
+            } else {
+              router.replace('/(tabs)/user/home');
+            }
+          }}
+        >
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.text }]}>Notifications</Text>

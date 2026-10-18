@@ -20,7 +20,10 @@ type AuthenticatedUser = {
 const handler = new RPCHandler(wsRouter, {
   interceptors: [
     onError((error) => {
-      console.error('WebSocket RPC error:', error)
+      console.error('💥 WebSocket RPC error:', error)
+      if (error && typeof error === 'object' && 'cause' in error) {
+        console.error('💥 WebSocket RPC cause:', (error as any).cause)
+      }
     }),
   ],
 })

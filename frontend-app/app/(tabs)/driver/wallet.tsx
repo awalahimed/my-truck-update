@@ -43,7 +43,7 @@ export default function DriverWallet() {
     const pending = transactions
       .filter(tx => tx.status.toLowerCase() === 'pending' && tx.type === 'topup')
       .map(tx => tx.txRef)
-      .filter(Boolean);
+      .filter((ref): ref is string => Boolean(ref));
 
     if (pending.length > 0) {
       console.log('[Driver Wallet] Found pending transactions:', pending);
@@ -99,7 +99,6 @@ export default function DriverWallet() {
   );
 
   const handleBack = () => {
-    // Direct redirect to driver home instead of using back function
     router.replace('/(tabs)/driver/home');
   };
 

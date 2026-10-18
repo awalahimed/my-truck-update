@@ -6,12 +6,12 @@ import { AgentDashboardView } from "./dashboard-view"
 import { AgentWalletView } from "./wallet-view"
 import { CustomerProgressionView } from "./customer-progression-view"
 import { DriverProgressionView } from "./driver-progression-view"
-import dynamic from 'next/dynamic'
-const ReferralsView = dynamic(() => import('./referrals-view'), { ssr: false })
+import ReferralsView from './referrals-view'
 import { IconDashboard, IconUsers, IconWallet, IconTruck, IconLogout } from "@tabler/icons-react"
 
 function AgentPageWithTabs() {
   const { data: session } = useSession()
+  const user = (session as any)?.user;
 
   const handleLogout = () => {
     // Implement logout
@@ -26,7 +26,7 @@ function AgentPageWithTabs() {
           <div>
             <h1 className="text-2xl font-bold">Agent Dashboard</h1>
             <p className="text-sm text-muted-foreground">
-              Welcome, {session?.user?.name || "Agent"}
+              Welcome, {user?.name || "Agent"}
             </p>
           </div>
           <Button variant="outline" onClick={handleLogout}>

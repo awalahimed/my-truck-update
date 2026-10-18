@@ -33,9 +33,10 @@ interface PhoneInputProps extends Omit<TextInputProps, 'value' | 'onChangeText'>
   value: string;
   onChangeText: (text: string) => void;
   error?: string;
+  rightIcon?: React.ReactNode;
 }
 
-export function PhoneInput({ value, onChangeText, error, ...props }: PhoneInputProps) {
+export function PhoneInput({ value, onChangeText, error, rightIcon, ...props }: PhoneInputProps) {
   const { colors } = useTheme();
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(countryCodes[0]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -80,6 +81,9 @@ export function PhoneInput({ value, onChangeText, error, ...props }: PhoneInputP
           onBlur={() => setIsFocused(false)}
           {...props}
         />
+        {rightIcon ? (
+          <View style={{ paddingRight: 8, justifyContent: 'center' }}>{rightIcon}</View>
+        ) : null}
       </View>
 
       {error && <Text style={styles.errorText}>{error}</Text>}

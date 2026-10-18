@@ -58,7 +58,7 @@ export default function Profile() {
     try {
       // Try to get cached data first if offline
       if (!networkState.isOnline && useCache) {
-        const cachedProfile = await OfflineStorage.get(CacheKeys.PROFILE(session.user.id));
+        const cachedProfile = await OfflineStorage.get<any>(CacheKeys.PROFILE(session.user.id));
         if (cachedProfile) {
           console.log('Using cached profile data');
           setProfileData(cachedProfile);
@@ -86,7 +86,7 @@ export default function Profile() {
       
       // Try to load cached data as fallback
       if (useCache) {
-        const cachedProfile = await OfflineStorage.get(CacheKeys.PROFILE(session.user.id));
+        const cachedProfile = await OfflineStorage.get<any>(CacheKeys.PROFILE(session.user.id));
         if (cachedProfile) {
           console.log('Using cached profile data after error');
           setProfileData(cachedProfile);

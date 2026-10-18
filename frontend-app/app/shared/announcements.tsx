@@ -7,6 +7,7 @@ import { fontSize } from '@/constants/theme';
 import { useTheme } from '@/hooks/ThemeContext';
 import { wp, hp, rf } from '@/utils/responsive';
 import { orpc } from '@/hooks/orpc';
+import { useAuth } from '@/hooks/AuthContext';
 
 interface Announcement {
   id: string;
@@ -18,6 +19,7 @@ interface Announcement {
 }
 
 export default function AnnouncementsScreen() {
+  const { session } = useAuth();
   const { width: contentWidth } = useWindowDimensions();
   const { colors, isDark } = useTheme();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -29,11 +31,11 @@ export default function AnnouncementsScreen() {
       const data = await orpc.announcement.getForUser();
       // Filter out expired announcements
       const now = new Date();
-      const activeAnnouncements = (data.announcements || []).filter((announcement: Announcement) => {
+      const activeAnnouncements = (data.announcements || []).filter((announcement: any) => {
         if (!announcement.expiresAt) return true; // No expiry date means always active
         return new Date(announcement.expiresAt) > now; // Only show if not expired
       });
-      setAnnouncements(activeAnnouncements);
+      setAnnouncements(activeAnnouncements as any);
     } catch (error) {
       // Silently fail - just show empty state
       console.log('Could not fetch announcements');
@@ -66,7 +68,16 @@ export default function AnnouncementsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => {
+            if (session?.user?.role === 'driver') {
+              router.replace('/(tabs)/driver/home');
+            } else {
+              router.replace('/(tabs)/user/home');
+            }
+          }}
+          style={styles.backButton}
+        >
           <ArrowLeft size={rf(24)} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Announcements</Text>

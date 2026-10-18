@@ -12,6 +12,9 @@ interface WebSocketContextType {
   // *** NEW: Order updates from WebSocket push
   orderUpdate: any | null
   setOrderUpdate: (update: any | null) => void
+  // *** NEW: Live Trip GPS Location
+  liveTripLocation: any | null
+  setLiveTripLocation: (location: any | null) => void
   connect: () => void
   disconnect: () => void
   forceReconnect: () => void
@@ -31,6 +34,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setAssignedOrder, 
     orderUpdate, 
     setOrderUpdate, 
+    liveTripLocation,
+    setLiveTripLocation,
     connect, 
     disconnect,
     forceReconnect,
@@ -48,6 +53,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setAssignedOrder,
       orderUpdate,
       setOrderUpdate,
+      liveTripLocation,
+      setLiveTripLocation,
       connect,
       disconnect,
       forceReconnect,
@@ -72,6 +79,8 @@ export const useWebSocketContext = (): WebSocketContextType => {
       setAssignedOrder: () => {},
       orderUpdate: null,
       setOrderUpdate: () => {},
+      liveTripLocation: null,
+      setLiveTripLocation: () => {},
       connect: () => {},
       disconnect: () => {},
       forceReconnect: () => {},

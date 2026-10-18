@@ -3,7 +3,7 @@ const isDevelopment = import.meta.env.MODE === 'development' && window.location.
 
 // In development, use separate backend URL
 // In production, use same domain (served together)
-const BASE_URL = isDevelopment ? 'http://localhost:3005' : window.location.origin;
+const BASE_URL = isDevelopment ? 'http://localhost:3002' : window.location.origin;
 
 export const URL = {
     BASE: BASE_URL,

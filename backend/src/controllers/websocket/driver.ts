@@ -6,9 +6,12 @@ import { vehicle } from '../../database/schema/vehicle-schema.js'
 import { driverOffer, offerStatus } from '../../database/schema/driver-offer-schema.js'
 import { user } from '../../database/schema/auth-schema.js'
 import { uploadedFile } from '../../database/schema/file-schema.js' // *** NEW: Import uploadedFile
+import { marketRates, cities } from '../../database/schema/master-data-schema.js'
 import { eq, and, inArray, or } from 'drizzle-orm'
 import { notifyOrderSubscribers } from './customer.js'
 import { notifyCustomerNewOffer } from './customer.js'
+
+import { getTrackingStore } from '../../services/tracking/tracking-store.js'
 
 const createOfferSchema = z.object({
   orderId: z.string(),
@@ -17,7 +20,26 @@ const createOfferSchema = z.object({
 
 const locationUpdateSchema = z.object({
   latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180)
+  longitude: z.number().min(-180).max(180),
+  orderId: z.string().optional(),
+  bearing: z.number().optional(),
+  speedKmh: z.number().optional(),
+  accuracy: z.number().optional(),
+  timestamp: z.string().optional(),
+})
+
+const batchLocationSchema = z.object({
+  orderId: z.string(),
+  waypoints: z.array(
+    z.object({
+      latitude: z.number().min(-90).max(90),
+      longitude: z.number().min(-180).max(180),
+      bearing: z.number().optional(),
+      speedKmh: z.number().optional(),
+      accuracy: z.number().optional(),
+      timestamp: z.string(),
+    })
+  ),
 })
 
 export const driverController = {
@@ -27,6 +49,7 @@ export const driverController = {
     .handler(async ({ input, context }) => {
       const { orderId, offeredPrice } = input
       const driverId = context.user.id
+      console.log('🚀 [createOffer] Received offer request:', { orderId, offeredPrice, driverId })
 
       // Check if driver account is approved
       const driverUser = await db.select()
@@ -35,6 +58,7 @@ export const driverController = {
         .limit(1)
 
       if (!driverUser.length || driverUser[0]?.accountStatus !== 'active') {
+        console.warn('⚠️ [createOffer] Driver not active:', driverUser[0]?.accountStatus)
         throw new Error('Your account is pending approval. You cannot make offers yet.')
       }
 
@@ -56,6 +80,70 @@ export const driverController = {
       // Only allow offers on APPROVED or HAS_OFFERS status
       if (targetOrder.status !== orderStatus.APPROVED && targetOrder.status !== orderStatus.HAS_OFFERS) {
         throw new Error('Order is not available for offers')
+      }
+
+      // Enforce Regional Benchmark Price-Band Guard (Anti-Gouging & Fair Wage)
+      try {
+        const allCities = await db.select().from(cities).where(eq(cities.isActive, true));
+        const pickupLower = (targetOrder.pickupAddress || '').toLowerCase();
+        const deliveryLower = (targetOrder.deliveryAddress || '').toLowerCase();
+
+        const originCity = allCities.find(c => pickupLower.includes(c.nameEn.toLowerCase()) || pickupLower.includes(c.nameAm));
+        const destCity = allCities.find(c => deliveryLower.includes(c.nameEn.toLowerCase()) || deliveryLower.includes(c.nameAm));
+
+        if (originCity && destCity) {
+          const [benchmark] = await db
+            .select()
+            .from(marketRates)
+            .where(
+              and(
+                eq(marketRates.originCityId, originCity.id),
+                eq(marketRates.destinationCityId, destCity.id),
+                eq(marketRates.isActive, true)
+              )
+            )
+            .limit(1);
+
+          if (benchmark) {
+            const minNum = parseFloat(benchmark.minRate) || 0;
+            const maxNum = parseFloat(benchmark.maxRate) || 0;
+            const baseNum = parseFloat(benchmark.baseRate) || 0;
+
+            // Only enforce fixed price if baseNum is actually configured (> 0)
+            if (benchmark.isFixedPrice && baseNum > 0) {
+              if (Math.abs(offeredPrice - baseNum) > 5) {
+                throw new Error(
+                  `This route operates on a Guaranteed Fixed Tariff of ${Math.round(baseNum).toLocaleString()} ETB. Offers must match the official constant price.`
+                );
+              }
+            } else if (minNum > 0 && maxNum > 0) {
+              // Flexible Market Band:
+              // Ceiling check: Anti-price gouging (+25% margin over regional ceiling)
+              if (offeredPrice > maxNum * 1.25) {
+                throw new Error(
+                  `Offer of ${offeredPrice.toLocaleString()} ETB exceeds the fair regional ceiling of ${Math.round(maxNum).toLocaleString()} ETB for this route. Maximum acceptable bid is ${Math.round(maxNum * 1.25).toLocaleString()} ETB.`
+                );
+              }
+
+              // Floor check: Anti-dumping / Fair wage floor (-25% below regional floor)
+              if (offeredPrice < minNum * 0.75) {
+                throw new Error(
+                  `Offer of ${offeredPrice.toLocaleString()} ETB is below the minimum fair driver wage (${Math.round(minNum).toLocaleString()} ETB) for this route.`
+                );
+              }
+            }
+          }
+        }
+      } catch (err: any) {
+        // Re-throw validation errors
+        if (
+          err.message &&
+          (err.message.includes('Guaranteed Fixed Tariff') ||
+            err.message.includes('exceeds the fair regional') ||
+            err.message.includes('below the minimum fair'))
+        ) {
+          throw err;
+        }
       }
 
       // Check if driver already has a pending offer for this order
@@ -81,11 +169,15 @@ export const driverController = {
           .where(eq(driverOffer.id, existingOfferId))
 
         // Notify customer about updated offer
-        await notifyCustomerNewOffer(orderId, {
-          offerId: existingOfferId,
-          driverId,
-          offeredPrice: offeredPrice.toString(),
-        })
+        try {
+          await notifyCustomerNewOffer(orderId, {
+            offerId: existingOfferId,
+            driverId,
+            offeredPrice: offeredPrice.toString(),
+          })
+        } catch (e) {
+          console.warn('[createOffer] Customer WS update failed:', e)
+        }
 
         return { success: true, message: 'Offer updated successfully', offerId: existingOfferId }
       }
@@ -122,21 +214,29 @@ export const driverController = {
           .where(eq(order.id, orderId))
       }
 
-      // Create in-app notification for customer about new offer
-      const { createNotification } = await import('../../services/notification.js')
-      await createNotification(targetOrder.customerId, {
-        title: '💰 New Offer Received',
-        body: `A driver offered ${offeredPrice} ETB for your order`,
-        type: 'new_offer',
-        data: { orderId, offerId, offeredPrice: offeredPrice.toString() },
-      })
+      // Create in-app notification for customer about new offer (safe try/catch)
+      try {
+        const { createNotification } = await import('../../services/notification.js')
+        await createNotification(targetOrder.customerId, {
+          title: '💰 New Offer Received',
+          body: `A driver offered ${offeredPrice} ETB for your order`,
+          type: 'new_offer',
+          data: { orderId, offerId, offeredPrice: offeredPrice.toString() },
+        })
+      } catch (err) {
+        console.warn('[createOffer] Failed to create customer in-app notification:', err)
+      }
 
-      // Notify customer about new offer
-      await notifyCustomerNewOffer(orderId, {
-        offerId,
-        driverId,
-        offeredPrice: offeredPrice.toString(),
-      })
+      // Notify customer about new offer (safe try/catch)
+      try {
+        await notifyCustomerNewOffer(orderId, {
+          offerId,
+          driverId,
+          offeredPrice: offeredPrice.toString(),
+        })
+      } catch (err) {
+        console.warn('[createOffer] Failed to notify customer via WS:', err)
+      }
 
       return { success: true, message: 'Offer submitted successfully', offerId }
     }),
@@ -406,8 +506,60 @@ export const driverController = {
   updateLocation: wsDriverProcedure
     .input(locationUpdateSchema)
     .handler(async ({ input, context }) => {
-      console.log(`Driver ${context.user.id} location:`, input)
+      const driverId = context.user.id
+      let targetOrderId = input.orderId
+
+      // If no orderId provided in payload, find driver's active assigned order
+      if (!targetOrderId) {
+        const activeOrder = await db
+          .select({ id: order.id })
+          .from(order)
+          .where(
+            and(
+              eq(order.driverId, driverId),
+              or(
+                eq(order.status, orderStatus.ON_THE_WAY),
+                eq(order.status, orderStatus.ASSIGNED)
+              )
+            )
+          )
+          .limit(1)
+
+        if (activeOrder.length > 0 && activeOrder[0]) {
+          targetOrderId = activeOrder[0].id
+        }
+      }
+
+      if (targetOrderId) {
+        const trackingStore = getTrackingStore()
+        await trackingStore.setLatestLocation({
+          orderId: targetOrderId,
+          driverId,
+          latitude: input.latitude,
+          longitude: input.longitude,
+          bearing: input.bearing,
+          speedKmh: input.speedKmh,
+          accuracy: input.accuracy,
+          timestamp: input.timestamp || new Date().toISOString(),
+        })
+      }
+
       return { success: true }
+    }),
+
+  syncBatchLocations: wsDriverProcedure
+    .input(batchLocationSchema)
+    .handler(async ({ input, context }) => {
+      const driverId = context.user.id
+      const trackingStore = getTrackingStore()
+
+      await trackingStore.recordBatchWaypoints(
+        input.orderId,
+        driverId,
+        input.waypoints
+      )
+
+      return { success: true, count: input.waypoints.length }
     }),
 
   getMyOrders: wsDriverProcedure

@@ -15,7 +15,7 @@ export interface AuthUser {
   name: string
   email: string
   image: string | null
-  phoneNumber: string
+  phoneNumber: string | null
   phoneNumberVerified?: boolean | null
   role: string
   accountStatus: string | null
@@ -28,6 +28,8 @@ export interface AuthToken {
   user: AuthUser
   rememberMe?: boolean
 }
+
+export type Session = AuthToken;
 
 class TokenStorage {
   async setToken(data: AuthToken): Promise<void> {

@@ -9,6 +9,16 @@ export const authProcedure = os
   .use(async ({ context, next, path }) => {
     console.log('[authProcedure] Path:', path)
 
+    if (context.user) {
+      return next({
+        context: {
+          user: context.user,
+          session: context.session,
+          role: context.user.role,
+        },
+      });
+    }
+
     if (!context.req) {
       console.log('[authProcedure] No request in context')
       throw new ORPCError('UNAUTHORIZED')

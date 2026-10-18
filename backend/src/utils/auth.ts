@@ -28,9 +28,11 @@ export const auth: ReturnType<typeof betterAuth> = betterAuth({
   trustedOrigins: [
     "http://localhost:5173",
     "http://localhost:5174",
+    "http://192.168.30.162:3002",
+    "https://mytrucket.com",
     "https://enchanting-kelpie-143c03.netlify.app",
     "https://my-track-1.onrender.com",
-    "https://my-track-1.onrender.com/" //rmov this on the production stage  and use the production stage domain 
+    "https://my-track-1.onrender.com/"
   ],
   advanced: {
     crossSubDomainCookies: {

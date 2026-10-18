@@ -22,6 +22,7 @@ import {
 import { useRouter } from 'expo-router';
 import { spacing, fontSize, fontWeight, borderRadius } from '@/constants/theme';
 import { useTheme } from '@/hooks/ThemeContext';
+import { useAuth } from '@/hooks/AuthContext';
 
 const faqData = [
   {
@@ -89,6 +90,7 @@ interface FAQItem {
 export default function HelpSupport() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const { session } = useAuth();
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
 
   const toggleFAQ = (id: string) => {
@@ -100,7 +102,13 @@ export default function HelpSupport() {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => {
+          if (session?.user?.role === 'driver') {
+            router.replace('/(tabs)/driver/home');
+          } else {
+            router.replace('/(tabs)/user/home');
+          }
+        }}>
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.text }]}>Help & Support</Text>

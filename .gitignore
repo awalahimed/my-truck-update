@@ -173,3 +173,17 @@ pnpm-lock.yaml
 !dist/utils/retry.d.ts.map
 !dist/utils/retry.js
 !dist/utils/retry.js.map
+
+# Local testing and scratch files
+cloudflared.exe
+android-backup/
+test-callcenter*
+fix.js
+start-tunnel.bat
+# Compiled outputs and scratch scripts
+backend/dist/
+dist/
+backend/test_*.ts
+backend/check_*.ts
+backend/sync_passwords.ts
+

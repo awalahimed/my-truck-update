@@ -37,6 +37,12 @@ export const sendResetOTP = os
         })
       }
 
+      if (!userRecord.phoneNumber) {
+        throw new ORPCError('BAD_REQUEST', {
+          message: 'User does not have a registered phone number',
+        })
+      }
+
       const code = generateOTP()
       console.log("resend otp code:", code);
       const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000)

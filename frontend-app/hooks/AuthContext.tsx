@@ -22,10 +22,10 @@ interface AuthContextType {
 
   // Auth operations
   login: (phoneNumber: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; message: string }>;
-  verifyLoginOTP: (phoneNumber: string, code: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
+  verifyLoginOTP: (phoneNumber: string, code: string, rememberMe?: boolean) => Promise<{ success: boolean; user?: AuthUser; error?: string }>;
   resendLoginOTP: (phoneNumber: string) => Promise<{ success: boolean; message: string }>;
   register: (phoneNumber: string, password: string) => Promise<{ success: boolean; message: string }>;
-  verifyRegistrationOTP: (phoneNumber: string, code: string) => Promise<{ success: boolean; error?: string }>;
+  verifyRegistrationOTP: (phoneNumber: string, code: string) => Promise<{ success: boolean; user?: AuthUser; error?: string }>;
   logout: () => Promise<void>;
   signOut: () => Promise<void>; // Alias for logout
 
@@ -187,6 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         setSessionState({ user: (result as any).user, token: (result as any).accessToken });
         setState('authenticated');
+        return { success: true, user: (result as any).user };
       }
       return { success: true };
     } catch (err: any) {
@@ -200,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState('loading');
     setError(null);
     try {
-      const result = await orpc.authApp.resendOTP({ phoneNumber: phone });
+      const result = await (orpc as any).authApp.resendOTP({ phoneNumber: phone });
       if (!result.success) {
         throw new Error(result.message || 'Failed to resend OTP');
       }
@@ -249,6 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         setSessionState({ user: (result as any).user, token: (result as any).accessToken });
         setState('authenticated');
+        return { success: true, user: (result as any).user };
       }
       return { success: true };
     } catch (err: any) {
@@ -270,19 +272,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     } finally {
-      // Use conditional clear that respects remember me preference when offline
-      await tokenStorage.clearTokenConditional(!networkState.isOnline);
-      
-      // Only clear session state if tokens were actually cleared
-      const hasTokens = await tokenStorage.hasToken();
-      if (!hasTokens) {
-        setSessionState(null);
-        setState('unauthenticated');
-      } else {
-        // Tokens were kept due to remember me + offline, keep session but show as loading
-        console.log('🔒 Remember me enabled and offline - keeping session active');
-        setState('authenticated'); // Keep user logged in
-      }
+      await tokenStorage.clearToken();
+      setSessionState(null);
+      setState('unauthenticated');
     }
   }, [networkState.isOnline]);
 

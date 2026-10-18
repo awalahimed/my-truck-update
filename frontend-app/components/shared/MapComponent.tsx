@@ -1,21 +1,7 @@
 import React, { useRef, useImperativeHandle, useState, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Text } from 'react-native';
-// MOCKED FOR EXPO GO
-const MapView = React.forwardRef(({ children, style, ...props }: any, ref: any) => (
-  <View style={[style, { backgroundColor: '#e0e0e0', alignItems: 'center', justifyContent: 'center' }]}>
-    <Text style={{ textAlign: 'center', padding: 20, color: '#666' }}>
-      🗺️ Map is disabled in Expo Go.{'\n'}
-      Run 'npx expo run:android' to see the real map.
-    </Text>
-  </View>
-));
-const Camera = React.forwardRef((props: any, ref: any) => null);
-const ShapeSource = (props: any) => null;
-const LineLayer = (props: any) => null;
-const CircleLayer = (props: any) => null;
-type MapViewRef = any;
-type CameraRef = any;
+import { MapView, Camera, ShapeSource, LineLayer, CircleLayer } from '@maplibre/maplibre-react-native';
+import type { MapViewRef, CameraRef } from '@maplibre/maplibre-react-native';
 import * as Location from 'expo-location';
 import { useMapData } from './map/useMapData';
 import { MapTypeControls } from './map/MapTypeControls';
@@ -483,3 +469,4 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+

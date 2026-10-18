@@ -15,6 +15,8 @@ import { useTheme } from '@/hooks/ThemeContext';
 import { useAlert } from '@/components/shared/CustomAlert';
 import { orpc } from '@/hooks/orpc';
 import { config } from '@/config/config';
+import { useTripTracking } from '@/hooks/useTripTracking';
+import { ProofOfDeliveryModal } from './ProofOfDeliveryModal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -35,6 +37,35 @@ export function DriverAssignedOrderCard({
   const [order, setOrder] = useState(initialOrder);
   const [expanded, setExpanded] = useState(false);
   const [heightAnim] = useState(new Animated.Value(110));
+  const [showPoDModal, setShowPoDModal] = useState(false);
+
+  // Live GPS tracking when order is on_the_way
+  const { isTracking, currentLocation, offlineQueueCount } = useTripTracking({
+    orderId: order?.id,
+    role: 'driver',
+    isTripActive: order?.status === 'on_the_way',
+  });
+
+  // Sync map route with driver's real-time position
+  useEffect(() => {
+    if (onRouteUpdate && order) {
+      const pickupLat = parseFloat(order.pickupLatitude);
+      const pickupLng = parseFloat(order.pickupLongitude);
+      const deliveryLat = parseFloat(order.deliveryLatitude);
+      const deliveryLng = parseFloat(order.deliveryLongitude);
+
+      if (!isNaN(pickupLat) && !isNaN(pickupLng) && !isNaN(deliveryLat) && !isNaN(deliveryLng)) {
+        onRouteUpdate({
+          pickup: { lat: pickupLat, lng: pickupLng },
+          delivery: { lat: deliveryLat, lng: deliveryLng },
+          driver: currentLocation
+            ? { lat: currentLocation.latitude, lng: currentLocation.longitude }
+            : undefined,
+          vehicleType: order.vehicleType,
+        });
+      }
+    }
+  }, [currentLocation, order, onRouteUpdate]);
 
   // Update order when prop changes - only if data actually changed
   useEffect(() => {
@@ -268,25 +299,81 @@ export function DriverAssignedOrderCard({
             )}
             
             {order.status === 'on_the_way' && (
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.deliveredButton]}
-                onPress={handleMarkDelivered}
-              >
-                <CheckCircle size={16} color={colors.surface} />
-                <Text style={styles.deliveredButtonText}>Mark as Delivered</Text>
-              </TouchableOpacity>
+              <View style={{ gap: spacing.sm }}>
+                <View style={styles.trackingActiveBadge}>
+                  <View style={styles.trackingPulseDot} />
+                  <Text style={styles.trackingActiveText}>
+                    Live GPS Broadcasting • {currentLocation?.speedKmh ? `${Math.round(currentLocation.speedKmh)} km/h` : 'Tracking Active'}
+                  </Text>
+                  {offlineQueueCount > 0 && (
+                    <Text style={styles.offlineQueueText}>
+                      ({offlineQueueCount} offline buffered)
+                    </Text>
+                  )}
+                </View>
+                <TouchableOpacity 
+                  style={[styles.actionButton, styles.deliveredButton]}
+                  onPress={() => setShowPoDModal(true)}
+                >
+                  <CheckCircle size={16} color={colors.surface} />
+                  <Text style={styles.deliveredButtonText}>Confirm Delivery & Get Paid</Text>
+                </TouchableOpacity>
+              </View>
             )}
 
             {order.status === 'delivered' && (
-              <View style={styles.waitingNotice}>
-                <Text style={styles.waitingNoticeText}>
-                  ⏳ Waiting for customer to confirm completion
-                </Text>
+              <View style={{ gap: spacing.xs }}>
+                {order.podCompletedBy === 'signed_waybill_pending_review' ? (
+                  <View style={[styles.waitingNotice, { backgroundColor: '#fef3c7', borderColor: '#f59e0b', borderWidth: 1 }]}>
+                    <Text style={[styles.waitingNoticeText, { color: '#92400e', fontWeight: 'bold' }]}>
+                      📄 ደረሰኝ በግምገማ ላይ ነው (Reviewing Waybill Photo)
+                    </Text>
+                    <Text style={[styles.waitingNoticeText, { color: '#b45309', fontSize: fontSize.xs, marginTop: 2 }]}>
+                      የከተማው ማናጀር ደረሰኙን እያረጋገጠ ነው፤ ክፍያው በ2-3 ደቂቃ ውስጥ ይለቀቃል።
+                    </Text>
+                  </View>
+                ) : order.podCompletedBy === 'waybill_rejected_reupload_required' ? (
+                  <View style={[styles.waitingNotice, { backgroundColor: '#fee2e2', borderColor: '#ef4444', borderWidth: 1 }]}>
+                    <Text style={[styles.waitingNoticeText, { color: '#991b1b', fontWeight: 'bold' }]}>
+                      ⚠️ ደረሰኝ አልተፈቀደም (Waybill Rejected)
+                    </Text>
+                    <Text style={[styles.waitingNoticeText, { color: '#b91c1c', fontSize: fontSize.xs, marginTop: 2 }]}>
+                      {order.podDisputeReason || 'እባክዎ ግልጽ የሆነ የተፈረመበትን ደረሰኝ ፎቶ አንስተው ደግመው ይላኩ ወይም ኮድ ይጠይቁ።'}
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.waitingNotice}>
+                    <Text style={styles.waitingNoticeText}>
+                      ⏳ Awaiting delivery PIN or signed waybill confirmation
+                    </Text>
+                  </View>
+                )}
+                <TouchableOpacity 
+                  style={[styles.actionButton, styles.deliveredButton]}
+                  onPress={() => setShowPoDModal(true)}
+                >
+                  <CheckCircle size={16} color={colors.surface} />
+                  <Text style={styles.deliveredButtonText}>
+                    {order.podCompletedBy === 'waybill_rejected_reupload_required'
+                      ? 'Re-upload Waybill / Enter PIN'
+                      : 'Enter Receiver PIN / Waybill'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
         </View>
       )}
+
+      {/* Proof of Delivery Modal */}
+      <ProofOfDeliveryModal
+        visible={showPoDModal}
+        order={order}
+        onClose={() => setShowPoDModal(false)}
+        onSuccess={() => {
+          setOrder({ ...order, status: 'completed' });
+        }}
+      />
     </Animated.View>
   );
 }
@@ -538,6 +625,34 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.text,
     textAlign: 'center',
+    fontWeight: fontWeight.medium,
+  },
+  trackingActiveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#34C75915',
+    borderColor: '#34C75950',
+    borderWidth: 1,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 8,
+    gap: spacing.xs,
+    alignSelf: 'flex-start',
+  },
+  trackingPulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#34C759',
+  },
+  trackingActiveText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+    color: '#34C759',
+  },
+  offlineQueueText: {
+    fontSize: fontSize.xs,
+    color: colors.warning,
     fontWeight: fontWeight.medium,
   },
 });

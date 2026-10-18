@@ -7,6 +7,7 @@ import { formatCurrency } from '@/utils/formatters';
 
 interface WalletBalanceProps {
   balance: string;
+  reservedBalance?: string;
   totalTopup?: string;
   totalWithdrawn?: string;
   showTopup?: boolean;
@@ -18,6 +19,7 @@ interface WalletBalanceProps {
 
 export function WalletBalance({
   balance,
+  reservedBalance,
   totalTopup,
   totalWithdrawn,
   showTopup = false,
@@ -118,6 +120,18 @@ export function WalletBalance({
             )}
           </View>
         </View>
+
+        {reservedBalance && parseFloat(reservedBalance) > 0 && (
+          <View style={styles.escrowContainer}>
+            <View style={styles.escrowLeft}>
+              <Text style={[styles.escrowLabel, { color: colors.background }]}>🔒 Active Transit Escrow (የተያዘ ዋስትና)</Text>
+              <Text style={[styles.escrowSublabel, { color: colors.background }]}>Funds safely reserved for live delivery</Text>
+            </View>
+            <Text style={[styles.escrowAmount, { color: colors.background }]}>
+              {isBalanceVisible ? formatAmount(reservedBalance) : maskAmount()}
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -200,5 +214,30 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     opacity: 0.8,
     textAlign: 'center',
+  },
+  escrowContainer: {
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.25)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  escrowLeft: {
+    flex: 1,
+  },
+  escrowLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+  },
+  escrowSublabel: {
+    fontSize: 10,
+    opacity: 0.8,
+    marginTop: 2,
+  },
+  escrowAmount: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
   },
 });

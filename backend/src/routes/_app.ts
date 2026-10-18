@@ -15,6 +15,9 @@ import { referralController } from '../controllers/referral.js'
 import { healthController } from '../controllers/health.js'
 import { driverDocuments } from '../controllers/driver-documents.js'
 import { managerRouter } from '../controllers/manager.js'
+import { masterDataRouter } from '../controllers/master-data.js'
+import { pricingRouter } from '../controllers/pricing.js'
+import { townManagerPricingRouter } from '../controllers/town-manager-pricing.js'
 
 console.log('[Router] Admin controller loaded:', !!adminController)
 console.log('[Router] Admin controller keys:', Object.keys(adminController || {}))
@@ -39,6 +42,9 @@ export const router = {
   health: healthController,
   driverDocuments,
   manager: managerRouter,
+  townManager: townManagerPricingRouter,
+  masterData: masterDataRouter,
+  pricing: pricingRouter,
 }
 
 console.log('[Router] Full router keys:', Object.keys(router))

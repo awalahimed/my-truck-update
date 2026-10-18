@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { MapPin, Navigation } from 'lucide-react-native';
 import { MapComponent } from '@/components/shared/MapComponent';
-import { GebetaAutocomplete } from '@/components/shared/GebetaAutocomplete';
+import { TextInput } from 'react-native';
 
 interface LocationStepProps {
   data: any;
@@ -145,23 +145,15 @@ export function LocationStep({ data, onNext }: LocationStepProps) {
               </TouchableOpacity>
             )}
           </View>
-          <GebetaAutocomplete
-            key={`pickup-${pickup?.latitude}-${pickup?.longitude}`}
+          <TextInput
             placeholder="Search pickup address"
+            placeholderTextColor="#9CA3AF"
             value={pickup?.address || ''}
-            onLocationSelect={(location) => {
-              console.log('📦 Pickup selected:', location);
-              setPickup({
-                latitude: location.lat,
-                longitude: location.lng,
-                address: location.address,
-              });
-              setSelectingFor(null);
-            }}
-            onChangeText={(text) => {
-              // Clear pickup if user clears the text
+            onChangeText={(text: string) => {
               if (!text || text.trim() === '') {
                 setPickup(null);
+              } else {
+                setPickup({ latitude: pickup?.latitude || 9.03, longitude: pickup?.longitude || 38.74, address: text });
               }
             }}
             style={styles.autocomplete}
@@ -184,23 +176,15 @@ export function LocationStep({ data, onNext }: LocationStepProps) {
               </TouchableOpacity>
             )}
           </View>
-          <GebetaAutocomplete
-            key={`delivery-${destination?.latitude}-${destination?.longitude}`}
+          <TextInput
             placeholder="Search delivery address"
+            placeholderTextColor="#9CA3AF"
             value={destination?.address || ''}
-            onLocationSelect={(location) => {
-              console.log('🚚 Destination selected:', location);
-              setDestination({
-                latitude: location.lat,
-                longitude: location.lng,
-                address: location.address,
-              });
-              setSelectingFor(null);
-            }}
-            onChangeText={(text) => {
-              // Clear destination if user clears the text
+            onChangeText={(text: string) => {
               if (!text || text.trim() === '') {
                 setDestination(null);
+              } else {
+                setDestination({ latitude: destination?.latitude || 8.54, longitude: destination?.longitude || 39.27, address: text });
               }
             }}
             style={styles.autocomplete}

@@ -40,7 +40,7 @@ export function Skeleton({ width = '100%', height = 20, borderRadius = 8, style 
       style={[
         styles.skeleton,
         {
-          width,
+          width: width as any,
           height,
           borderRadius,
           opacity,

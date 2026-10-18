@@ -1,70 +1,180 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import { SecureStore } from '../utils/storage';
 
-/**
- * Get the development server IP address
- * This works by using Expo's debugger host which is your computer's IP
- */
-function getDevServerIP(): string {
-  const debuggerHost = Constants.expoConfig?.hostUri;
+export const PRODUCTION_URL = 'https://mytrucket.com';
+export const RENDER_URL = 'https://my-track-pi3n.onrender.com';
+export const DEV_TUNNEL_URL = 'https://gloves-cancer-linux-watched.trycloudflare.com';
+export const DEFAULT_LOCAL_IP = '192.168.0.236';
+export const WINDOWS_HOTSPOT_IP = '192.168.137.1';
+export const DEFAULT_PORT = '3002';
 
-  if (debuggerHost) {
-    const ip = debuggerHost.split(':')[0];
-    console.log('🌐 [Config] Detected dev server IP:', ip);
-    return ip;
-  }
-  if (Platform.OS === 'android') {
-    console.log('🌐 [Config] Using Android emulator localhost (10.0.2.2)');
-    return '10.53.206.100';
-  }
-
-  console.log('⚠️ [Config] Could not detect IP, falling back to localhost');
-  return 'localhost';
+export interface ServerPreset {
+  id: string;
+  label: string;
+  url: string;
+  description: string;
 }
 
-const devIP = getDevServerIP();
-const DEFAULT_PORT = '3002';
-const WS_PORT = '8080';
+export const SERVER_PRESETS: ServerPreset[] = [
+  {
+    id: 'production',
+    label: 'Production (Live Cloud)',
+    url: PRODUCTION_URL,
+    description: 'Live cloud backend (verified 24/7 on any network)',
+  },
+  {
+    id: 'dev_tunnel',
+    label: 'Local Laptop (HTTPS Tunnel)',
+    url: DEV_TUNNEL_URL,
+    description: 'Instant connection to your local backend, works on any Wi-Fi or 4G/5G',
+  },
+  {
+    id: 'local_hotspot',
+    label: 'Local Laptop (Windows Hotspot)',
+    url: `http://${WINDOWS_HOTSPOT_IP}:${DEFAULT_PORT}`,
+    description: 'Turn on Windows Mobile Hotspot and connect phone to laptop',
+  },
+  {
+    id: 'local_wifi',
+    label: 'Local Laptop (Wi-Fi LAN)',
+    url: `http://${DEFAULT_LOCAL_IP}:${DEFAULT_PORT}`,
+    description: 'Direct LAN connection (requires laptop and phone on same non-isolated Wi-Fi)',
+  },
+  {
+    id: 'render',
+    label: 'Render Staging (Cloud)',
+    url: RENDER_URL,
+    description: 'Cloud backup server on Render',
+  },
+];
 
-// Check if we're in development mode
-const isDevelopment = __DEV__;
+function getInitialDefaultUrl(): string {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/+$/, '');
+  }
+  // In release builds, default to reliable production cloud
+  if (!__DEV__) {
+    return PRODUCTION_URL;
+  }
+  // In development mode, check hostUri or fallback to local IP
+  const debuggerHost = Constants.expoConfig?.hostUri;
+  if (debuggerHost) {
+    const ip = debuggerHost.split(':')[0];
+    return `http://${ip}:${DEFAULT_PORT}`;
+  }
+  return `http://${DEFAULT_LOCAL_IP}:${DEFAULT_PORT}`;
+}
 
-// Production URLs - hardcoded for one.beonadvert.com
-const baseUrl = isDevelopment
-  ? `http://${devIP}:${DEFAULT_PORT}`
-  : 'https://mytrucket.com';
+let activeBaseUrl = getInitialDefaultUrl();
+const listeners = new Set<(url: string) => void>();
 
-const orpcUrl = isDevelopment
-  ? `http://${devIP}:${DEFAULT_PORT}/rpc`
-  : 'https://mytrucket.com/rpc';
+// Asynchronously load custom URL from storage
+SecureStore.getItemAsync('custom_server_url')
+  .then((saved) => {
+    if (saved && saved.startsWith('http')) {
+      activeBaseUrl = saved.trim().replace(/\/+$/, '');
+      console.log('🌐 [Config] Loaded custom server URL from storage:', activeBaseUrl);
+      listeners.forEach((fn) => fn(activeBaseUrl));
+    }
+  })
+  .catch(() => {});
 
-const authUrl = isDevelopment
-  ? `http://${devIP}:${DEFAULT_PORT}/api/auth`
-  : 'https://mytrucket.com/api/auth';
+export function getActiveServerUrl(): string {
+  return activeBaseUrl;
+}
 
-const wsUrl = isDevelopment
-  ? `ws://${devIP}:${DEFAULT_PORT}`
-  : 'wss://mytrucket.com';
+export async function setActiveServerUrl(newUrl: string): Promise<void> {
+  const clean = newUrl.trim().replace(/\/+$/, '');
+  activeBaseUrl = clean;
+  await SecureStore.setItemAsync('custom_server_url', clean);
+  console.log('🌐 [Config] Active server URL updated to:', clean);
+  listeners.forEach((fn) => fn(clean));
+}
 
-const uploadsUrl = isDevelopment
-  ? `http://${devIP}:${DEFAULT_PORT}/uploads`
-  : 'https://mytrucket.com/uploads';
+export async function resetServerUrlToDefault(): Promise<void> {
+  await SecureStore.deleteItemAsync('custom_server_url');
+  activeBaseUrl = getInitialDefaultUrl();
+  listeners.forEach((fn) => fn(activeBaseUrl));
+}
 
-console.log('🔧 [Config] API Configuration:', {
-  isDevelopment,
-  baseUrl,
-  orpcUrl,
-  authUrl,
-  wsUrl,
-  uploadsUrl,
-});
+export function subscribeServerUrlChange(listener: (url: string) => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/**
+ * Test connectivity to any server URL with a 6-second timeout
+ */
+export async function testServerConnection(targetUrl: string): Promise<{
+  success: boolean;
+  latencyMs: number;
+  message: string;
+}> {
+  const cleanUrl = targetUrl.trim().replace(/\/+$/, '');
+  const testEndpoint = `${cleanUrl}/health`;
+  const startTime = Date.now();
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    const res = await fetch(testEndpoint, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    const latencyMs = Date.now() - startTime;
+    if (res.ok) {
+      return {
+        success: true,
+        latencyMs,
+        message: `Connected successfully! (${res.status} OK - ${latencyMs}ms)`,
+      };
+    } else {
+      return {
+        success: false,
+        latencyMs,
+        message: `Server returned status ${res.status}: ${res.statusText}`,
+      };
+    }
+  } catch (err: any) {
+    const latencyMs = Date.now() - startTime;
+    if (err.name === 'AbortError') {
+      return {
+        success: false,
+        latencyMs,
+        message: 'Connection timed out (6s). Device cannot reach IP/Host.',
+      };
+    }
+    return {
+      success: false,
+      latencyMs,
+      message: err?.message || 'Network request failed (unreachable)',
+    };
+  }
+}
 
 export const config = {
   api: {
-    baseUrl,
-    orpcUrl,
-    authUrl,
-    wsUrl,
-    uploadsUrl,
+    get baseUrl() {
+      return activeBaseUrl;
+    },
+    get orpcUrl() {
+      return `${activeBaseUrl}/rpc`;
+    },
+    get authUrl() {
+      return `${activeBaseUrl}/api/auth`;
+    },
+    get wsUrl() {
+      return activeBaseUrl.startsWith('https://')
+        ? activeBaseUrl.replace('https://', 'wss://')
+        : activeBaseUrl.replace('http://', 'ws://');
+    },
+    get uploadsUrl() {
+      return `${activeBaseUrl}/uploads`;
+    },
   },
 };

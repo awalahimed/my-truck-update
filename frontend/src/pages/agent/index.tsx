@@ -82,15 +82,16 @@ function AgentPage() {
     secondary: []
   }
 
+  const userObj = (session as any)?.data?.user || (session as any)?.user;
   const currentUser = {
-    name: session?.user?.name || "Agent User",
-    email: session?.user?.email || "agent@example.com",
-    avatar: session?.user?.image || undefined,
-    id: session?.user?.id || ""
+    name: userObj?.name || "Agent User",
+    email: userObj?.email || "agent@example.com",
+    avatar: userObj?.image || undefined,
+    id: userObj?.id || ""
   }
 
   const renderContent = () => {
-    const accountStatus = session?.user?.accountStatus
+    const accountStatus = userObj?.accountStatus
     const isPending = accountStatus === 'pending'
 
     // Show pending banner on all pages

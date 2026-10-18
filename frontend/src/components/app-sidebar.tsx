@@ -58,11 +58,11 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={sidebar.primary} />
+        <NavMain items={sidebar.primary as any} />
         {sidebar.secondary.length > 0 && (
           <>
             <div className="mx-4 my-2 border-t border-sidebar-border" />
-            <NavSecondary items={sidebar.secondary} />
+            <NavSecondary items={sidebar.secondary as any} />
           </>
         )}
       </SidebarContent>

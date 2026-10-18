@@ -130,6 +130,7 @@ function AuthGuard({
 
     // Skip if no session
     if (!session?.user) {
+      lastCheckedPath.current = '';
       if (!isPublicRoute(pathname)) {
         router.replace('/auth/login');
       }
@@ -190,13 +191,33 @@ function AuthGuard({
       return;
     }
 
-    // If on public route but authenticated, redirect to home
+    // If on public route or root path but authenticated, redirect to home
     // But skip if we're on login page (user might be in OTP verification)
-    if (isPublicRoute(pathname) && !isOnboardingRoute(pathname) && pathname !== '/auth/login') {
+    if ((isPublicRoute(pathname) || pathname === '/' || pathname === '/index') && !isOnboardingRoute(pathname) && pathname !== '/auth/login') {
       const homeRoute = getHomeRoute(userRole);
       router.replace(homeRoute as any);
     }
   }, [session, pathname, hasFinishedSplash, isAuthLoading]);
+
+  // Handle hardware back button on Android to prevent popping to a white screen
+  useEffect(() => {
+    const onBackPress = () => {
+      if (!session?.user) return false;
+      const userRole = session.user.role;
+      const homeRoute = getHomeRoute(userRole);
+
+      // If we are not on the home route and we are on an app screen, go to home instead of blank screen
+      if (pathname && pathname !== homeRoute && (pathname.startsWith('/(tabs)/') || pathname.startsWith('/shared/'))) {
+        router.replace(homeRoute as any);
+        return true; // handled
+      }
+      return false; // let default behavior happen (e.g. exit app if already on home)
+    };
+
+    const { BackHandler } = require('react-native');
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => subscription.remove();
+  }, [pathname, session]);
 
   return <>{children}</>;
 }

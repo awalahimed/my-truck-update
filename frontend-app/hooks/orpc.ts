@@ -183,7 +183,7 @@ async function clearAuthStorage() {
 }
 
 const link = new RPCLink({
-  url: config.api.orpcUrl,
+  url: () => config.api.orpcUrl,
   fetch: customFetch,
   headers: async () => {
     try {

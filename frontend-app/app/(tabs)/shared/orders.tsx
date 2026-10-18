@@ -189,7 +189,16 @@ export default function Orders() {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => {
+            if (isDriver) {
+              router.replace('/(tabs)/driver/home');
+            } else {
+              router.replace('/(tabs)/user/home');
+            }
+          }}
+        >
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.text }]}>{pageTitle}</Text>
@@ -289,6 +298,9 @@ export default function Orders() {
                     <Text style={[styles.orderTotal, { color: colors.primary }]}>
                       {formatNumber(parseFloat(order.offeredPrice || order.finalPrice || '0'))} ETB
                     </Text>
+                    <View style={styles.escrowPill}>
+                      <Text style={styles.escrowPillText}>🔒 Escrow Protected</Text>
+                    </View>
                   </View>
                 )}
               </TouchableOpacity>
@@ -421,9 +433,23 @@ const styles = StyleSheet.create({
   },
   orderFooter: {
     marginTop: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   orderTotal: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.bold,
+  },
+  escrowPill: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  escrowPillText: {
+    color: '#15803D',
+    fontSize: 11,
+    fontWeight: '600',
   },
 });

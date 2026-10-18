@@ -11,8 +11,11 @@ export const BalanceCard = ({ title, amount, color = '#D1F4E8' }: { title: strin
   </View>
 );
 
-export const TransactionItem = ({ transaction }: { transaction: Transaction }) => {
-  const isExpense = transaction.type === 'expense';
+export const TransactionItem = ({ transaction }: { transaction: any }) => {
+  const isExpense = transaction.type === 'withdrawal' || transaction.type === 'payment' || transaction.type === 'expense';
+  const title = transaction.description || transaction.name || (isExpense ? 'Payment' : 'Deposit');
+  const dateStr = transaction.createdAt ? new Date(transaction.createdAt).toLocaleDateString() : (transaction.time || '');
+  const numericAmount = Math.abs(parseFloat(transaction.amount) || 0);
 
   return (
     <View style={styles.transactionItem}>
@@ -28,15 +31,15 @@ export const TransactionItem = ({ transaction }: { transaction: Transaction }) =
           )}
         </View>
         <View style={styles.transactionInfo}>
-          <Text style={styles.transactionName}>{transaction.name}</Text>
-          <Text style={styles.transactionTime}>{transaction.time}</Text>
+          <Text style={styles.transactionName}>{title}</Text>
+          <Text style={styles.transactionTime}>{dateStr}</Text>
         </View>
       </View>
       <Text style={[
         styles.transactionAmount,
         { color: isExpense ? colors.error : colors.success }
       ]}>
-        {isExpense ? '-' : ''}${Math.abs(transaction.amount).toFixed(2)}
+        {isExpense ? '-' : '+'}{numericAmount.toFixed(2)} ETB
       </Text>
     </View>
   );

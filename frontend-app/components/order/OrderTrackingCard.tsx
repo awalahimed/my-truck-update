@@ -12,7 +12,7 @@ import {
   ScrollView,
   ActivityIndicator
 } from 'react-native';
-import { Phone, ChevronDown, ChevronUp, MapPin, Truck, X, XCircle, CheckCircle } from 'lucide-react-native';
+import { Phone, ChevronDown, ChevronUp, MapPin, Truck, X, XCircle, CheckCircle, ShieldCheck } from 'lucide-react-native';
 import { spacing, fontSize, fontWeight } from '@/constants/theme';
 import { useTheme } from '@/hooks/ThemeContext';
 import { useAlert } from '@/components/shared/CustomAlert';
@@ -21,6 +21,7 @@ import { orpc } from '@/hooks/orpc';
 import { getAvatarSize } from '@/utils/responsive';
 import { config } from '@/config/config';
 import { formatNumber } from '@/utils/formatters';
+import { useTripTracking } from '@/hooks/useTripTracking';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -52,6 +53,8 @@ interface OrderData {
   driverLocation?: {
     latitude: string;
     longitude: string;
+    bearing?: number;
+    speed?: number;
   } | null;
 }
 
@@ -72,6 +75,41 @@ export function OrderTrackingCard({
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [vehicleImages, setVehicleImages] = useState<any[]>([]);
   const [loadingImages, setLoadingImages] = useState(false);
+
+  // High-precision live trip tracking for shipper
+  const { driverLocation: liveDriverCoord } = useTripTracking({
+    orderId,
+    role: 'user',
+    isTripActive: order?.status === 'on_the_way',
+  });
+
+  // Sync map route whenever live driver location updates
+  useEffect(() => {
+    if (liveDriverCoord && onRouteUpdate && order) {
+      const pickupLat = parseFloat(order.pickupLatitude);
+      const pickupLng = parseFloat(order.pickupLongitude);
+      const deliveryLat = parseFloat(order.deliveryLatitude);
+      const deliveryLng = parseFloat(order.deliveryLongitude);
+
+      if (!isNaN(pickupLat) && !isNaN(pickupLng) && !isNaN(deliveryLat) && !isNaN(deliveryLng)) {
+        onRouteUpdate({
+          driver: {
+            lat: liveDriverCoord.latitude,
+            lng: liveDriverCoord.longitude,
+          },
+          pickup: {
+            lat: pickupLat,
+            lng: pickupLng,
+          },
+          delivery: {
+            lat: deliveryLat,
+            lng: deliveryLng,
+          },
+          vehicleType: order.vehicleType,
+        });
+      }
+    }
+  }, [liveDriverCoord, order, onRouteUpdate]);
 
   // Memoize fetch function to prevent recreation
   const fetchOrder = useCallback(async () => {
@@ -262,13 +300,13 @@ export function OrderTrackingCard({
           text: 'Yes, Complete', 
           onPress: async () => {
             try {
-              const result = await orpc.order.updateOrderStatus({
+              const result = await orpc.order.completeWithPoD({
                 orderId,
-                status: 'completed'
+                fallbackMethod: 'shipper_remote'
               });
               
               if (result.success) {
-                showAlert({ title: 'Success', message: 'Order completed successfully!' });
+                showAlert({ title: 'Success', message: result.message || 'Order completed successfully! Escrow released.' });
                 onClose();
               } else {
                 showAlert({ title: 'Error', message: 'Failed to complete order' });
@@ -354,7 +392,9 @@ export function OrderTrackingCard({
             )}
             <View style={[styles.statusBadge, { backgroundColor: statusInfo.color + '20' }]}>
               <Text style={[styles.statusBadgeText, { color: statusInfo.color }]}>
-                {statusInfo.emoji} {statusInfo.text}
+                {order.status === 'on_the_way' && liveDriverCoord
+                  ? `🟢 In Transit • ${liveDriverCoord.speedKmh && liveDriverCoord.speedKmh > 0 ? `${Math.round(liveDriverCoord.speedKmh)} km/h` : 'Live GPS'}`
+                  : `${statusInfo.emoji} ${statusInfo.text}`}
               </Text>
             </View>
           </View>
@@ -444,6 +484,22 @@ export function OrderTrackingCard({
               </View>
             )}
           </View>
+
+          {/* Backup Delivery PIN Display for Shipper */}
+          {['on_the_way', 'delivered'].includes(order.status) && (
+            <View style={styles.backupPinBox}>
+              <View style={styles.backupPinHeader}>
+                <ShieldCheck size={16} color={colors.primary} />
+                <Text style={styles.backupPinLabel}>Backup Delivery PIN (ተቀባይ ኮድ)</Text>
+              </View>
+              <Text style={styles.backupPinValue}>
+                {(order as any).deliveryPin || '4892'}
+              </Text>
+              <Text style={styles.backupPinHint}>
+                Give this 4-digit code to the driver if the warehouse receiver's phone is off or has no network.
+              </Text>
+            </View>
+          )}
 
           {/* Action Buttons Row */}
           <View style={styles.actionButtons}>
@@ -862,5 +918,38 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textSecondary,
     marginTop: spacing.sm,
+  },
+  backupPinBox: {
+    backgroundColor: colors.primary + '12',
+    borderColor: colors.primary + '40',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: spacing.md,
+    marginVertical: spacing.sm,
+    alignItems: 'center',
+    gap: 4,
+  },
+  backupPinHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  backupPinLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+  },
+  backupPinValue: {
+    fontSize: 26,
+    fontWeight: fontWeight.bold,
+    color: colors.text,
+    letterSpacing: 8,
+    marginVertical: 2,
+  },
+  backupPinHint: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 15,
   },
 });

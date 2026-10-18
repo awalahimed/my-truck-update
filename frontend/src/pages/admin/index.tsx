@@ -1,6 +1,6 @@
 import { useState } from "react"
 import DashboardShell from "@/components/layouts/dashboard-shell"
-import { IconUsers, IconDashboard, IconShieldCheck, IconSpeakerphone, IconGift, IconWallet, IconUserCog, IconTruckDelivery, IconChartBar, IconMedal, IconCoin, IconBuildingCommunity } from "@tabler/icons-react"
+import { IconUsers, IconDashboard, IconShieldCheck, IconSpeakerphone, IconGift, IconWallet, IconUserCog, IconTruckDelivery, IconChartBar, IconMedal, IconCoin, IconBuildingCommunity, IconDatabase } from "@tabler/icons-react"
 import { useSession } from "@/hooks/auth/auth-client"
 import { DashboardView } from "./dashboard-view"
 import { UsersView } from "./user/users-view"
@@ -15,6 +15,7 @@ import { ConversionView } from "./conversion/conversion-view"
 import { AdminTiersView } from "./tiers/tiers-view"
 import { GiveawayView } from "./giveaway/giveaway-view"
 import { TownManagerReport } from "./town-managers/town-manager-report"
+import { MasterDataAdmin } from "./master-data/MasterDataAdmin"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // Referral Tabs Component
@@ -53,22 +54,26 @@ function AdminPage() {
       { title: "Conversion", url: "#", icon: IconChartBar, onClick: () => setActiveView("conversion") },
       { title: "Tiers", url: "#", icon: IconMedal, onClick: () => setActiveView("tiers") },
       { title: "Giveaway", url: "#", icon: IconCoin, onClick: () => setActiveView("giveaway") },
+      { title: "Management", url: "#", icon: IconDatabase, onClick: () => setActiveView("management") },
     ],
     secondary: [
     ]
   }
 
+  const userObj = (session as any)?.data?.user || (session as any)?.user;
   const currentUser = {
-    name: session?.user?.name || "Admin User",
-    email: session?.user?.email || "admin@example.com",
-    avatar: session?.user?.image || undefined,
-    id: session?.user?.id || ""
+    name: userObj?.name || "Admin User",
+    email: userObj?.email || "admin@example.com",
+    avatar: userObj?.image || undefined,
+    id: userObj?.id || ""
   }
 
   const renderContent = () => {
     switch (activeView) {
       case "dashboard":
         return <DashboardView />
+      case "management":
+        return <MasterDataAdmin />
       case "users":
         return <UsersView />
       case "agents":

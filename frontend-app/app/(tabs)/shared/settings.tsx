@@ -139,7 +139,6 @@ export default function Settings() {
       
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => {
-          // Navigate back based on user role
           if (session?.user?.role === 'driver') {
             router.replace('/(tabs)/driver/home');
           } else {

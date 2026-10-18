@@ -22,14 +22,21 @@ export const sendLoginOTP = os
     try {
       const { phoneNumber, password } = input
 
-      // Simple normalization: ensure we have a common format for lookup
+      const cleanPhone = phoneNumber.replace(/[\s\-\(\)]/g, '')
+      const digitsOnly = cleanPhone.replace(/\D/g, '')
+      const last9 = digitsOnly.slice(-9)
+
+      // Query database checking all common Ethiopian format variants
       let userRecord = await db.query.user.findFirst({
         where: (users, { eq, or }) => or(
           eq(users.phoneNumber, phoneNumber),
-          phoneNumber.startsWith('+') ? undefined : eq(users.phoneNumber, `+${phoneNumber}`),
-          phoneNumber.startsWith('+') ? eq(users.phoneNumber, phoneNumber.substring(1)) : undefined,
-          phoneNumber.startsWith('0') ? eq(users.phoneNumber, `+251${phoneNumber.substring(1)}`) : undefined,
-          phoneNumber.length === 9 ? eq(users.phoneNumber, `+251${phoneNumber}`) : undefined,
+          eq(users.phoneNumber, cleanPhone),
+          eq(users.phoneNumber, `+${cleanPhone}`),
+          eq(users.phoneNumber, cleanPhone.replace(/^\+/, '')),
+          last9.length === 9 ? eq(users.phoneNumber, `+251${last9}`) : undefined,
+          last9.length === 9 ? eq(users.phoneNumber, `251${last9}`) : undefined,
+          last9.length === 9 ? eq(users.phoneNumber, `0${last9}`) : undefined,
+          last9.length === 9 ? eq(users.phoneNumber, last9) : undefined,
         ),
       })
 
@@ -94,6 +101,12 @@ export const sendLoginOTP = os
             message: 'Invalid phone number or password',
           })
         }
+      }
+
+      if (!existingUser.phoneNumber) {
+        throw new ORPCError('BAD_REQUEST', {
+          message: 'User does not have a registered phone number',
+        })
       }
 
       const code = generateOTP()

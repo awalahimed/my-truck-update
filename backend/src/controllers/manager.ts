@@ -10,6 +10,7 @@ import {
   assignTerritory,
 } from '../services/manager.js';
 import { logger } from '../utils/logger.js';
+import { townManagerPricingRouter } from './town-manager-pricing.js';
 
 /**
  * Get current manager's profile (townManager record)
@@ -224,4 +225,6 @@ export const managerRouter = os.router({
     suspend: suspendAgentAction,
     assignTerritory: assignTerritoryAction,
   }),
+  marketRates: townManagerPricingRouter,
+  setMarketRate: townManagerPricingRouter.setMarketRate,
 });

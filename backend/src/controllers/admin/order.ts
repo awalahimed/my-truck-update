@@ -41,7 +41,19 @@ const getAllOrders = adminProcedure
       }
 
       if (status) {
-        conditions.push(eq(order.status, status));
+        if (status === 'pod_pending_review') {
+          conditions.push(
+            and(
+              eq(order.status, orderStatus.DELIVERED),
+              or(
+                eq(order.podCompletedBy, 'signed_waybill_pending_review'),
+                eq(order.podCompletedBy, 'waybill_rejected_reupload_required')
+              )
+            )
+          );
+        } else {
+          conditions.push(eq(order.status, status));
+        }
       }
 
       if (dateFrom) {
@@ -73,6 +85,18 @@ const getAllOrders = adminProcedure
           status: order.status,
           estimatedPrice: order.estimatedPrice,
           finalPrice: order.finalPrice,
+          deliveryPin: order.deliveryPin,
+          consigneeName: order.consigneeName,
+          consigneePhone: order.consigneePhone,
+          podWaybillPhoto: order.podWaybillPhoto,
+          podCargoPhoto: order.podCargoPhoto,
+          podCompletedBy: order.podCompletedBy,
+          podLatitude: order.podLatitude,
+          podLongitude: order.podLongitude,
+          podDisputeReason: order.podDisputeReason,
+          podDisputedAt: order.podDisputedAt,
+          deliveredAt: order.deliveredAt,
+          completedAt: order.completedAt,
           createdAt: order.createdAt,
           updatedAt: order.updatedAt,
         })

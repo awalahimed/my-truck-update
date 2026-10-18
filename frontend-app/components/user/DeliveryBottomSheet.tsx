@@ -49,7 +49,7 @@ export const DeliveryBottomSheet: React.FC<DeliveryBottomSheetProps> = ({
   selectedOrder,
   onOrderSelect,
 }) => {
-  const { colors,_ } = useTheme();
+  const { colors } = useTheme();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [showOrderStatus, setShowOrderStatus] = useState(false);

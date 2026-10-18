@@ -71,7 +71,7 @@ export function AgentDashboardView() {
           orpc.agent.commissions.getConversionMetrics(),
         ]);
         if (statsRes.success && statsRes.stats) setStats(statsRes.stats as AgentDashboardStats);
-        if (metricsRes.success && metricsRes.metrics) setMetrics(metricsRes.metrics as ConversionMetrics);
+        if (metricsRes.success && metricsRes.metrics) setMetrics(metricsRes.metrics as unknown as ConversionMetrics);
       } catch (error) {
         console.error('Failed to fetch agent dashboard stats:', error);
         toast.error('Failed to load dashboard statistics');

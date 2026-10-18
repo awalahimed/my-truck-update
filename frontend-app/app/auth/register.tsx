@@ -25,6 +25,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { showToast } from '@/hooks/useToast';
 import { tokenStorage } from '@/utils/tokenStorage';
 import * as ExpoClipboard from 'expo-clipboard';
+import { getActiveServerUrl } from '@/config/config';
 
 export default function RegisterScreen() {
   const [phone, setPhone] = useState('');
@@ -244,7 +245,17 @@ export default function RegisterScreen() {
     try {
       const regResult = await register(phone, password);
       if (!regResult.success) {
-        showToast({ type: 'error', message: regResult.message });
+        const msg = regResult.message || '';
+        const isNetwork =
+          msg.toLowerCase().includes('network') ||
+          msg.toLowerCase().includes('fetch') ||
+          msg.toLowerCase().includes('timeout');
+        showToast({
+          type: 'error',
+          message: isNetwork
+            ? `Cannot reach server at ${getActiveServerUrl()}. Check connection or server settings.`
+            : msg,
+        });
         return;
       }
 
@@ -255,7 +266,17 @@ export default function RegisterScreen() {
         setTimeout(() => inputRefs.current[0]?.focus(), 100);
         showToast({ type: 'success', message: 'OTP sent successfully' });
       } else {
-        showToast({ type: 'error', message: result.message });
+        const msg = result.message || '';
+        const isNetwork =
+          msg.toLowerCase().includes('network') ||
+          msg.toLowerCase().includes('fetch') ||
+          msg.toLowerCase().includes('timeout');
+        showToast({
+          type: 'error',
+          message: isNetwork
+            ? `Cannot reach server at ${getActiveServerUrl()}. Check connection or server settings.`
+            : msg,
+        });
       }
     } finally {
       setIsSendingOtp(false);
@@ -638,7 +659,7 @@ const styles = StyleSheet.create({
   referralRewardBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.successLight || '#E8F5E9',
+    backgroundColor: '#DCFCE7',
     padding: spacing.sm,
     borderRadius: 8,
     marginTop: spacing.xs,

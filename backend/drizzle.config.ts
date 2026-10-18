@@ -13,7 +13,7 @@ declare const process: {
 };
 
 export default defineConfig({
-  schema: './src/database/schema/',
+  schema: './src/database/schema/*.ts',
   out: './src/database/migrations',
   dialect: 'mysql',
   dbCredentials: {

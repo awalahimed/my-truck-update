@@ -69,7 +69,7 @@ export function NavUser({
 
   const handleLogout = async () => {
     try {
-      await authClient.signOut()
+      await (authClient.signOut as any)()
       toast.success("Logged out successfully")
       window.location.href = "/login"
     } catch (error) {

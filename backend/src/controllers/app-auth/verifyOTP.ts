@@ -47,6 +47,12 @@ export const verifyOTP = os
           .where(eq(user.id, userRecord.id))
       }
 
+      if (!userRecord.phoneNumber) {
+        throw new ORPCError('BAD_REQUEST', {
+          message: 'User does not have a registered phone number',
+        })
+      }
+
       // Use normalized phone number from user record to lookup OTP
       // (since OTP was stored with the normalized phone as identifier)
       const verificationRecord = await db.query.verification.findFirst({

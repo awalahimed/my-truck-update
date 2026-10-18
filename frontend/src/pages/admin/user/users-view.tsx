@@ -33,6 +33,12 @@ interface UserFormData {
   vehicleImage?: string;
   licenseFrontImage?: string;
   licenseBackImage?: string;
+  password?: string;
+  confirmPassword?: string;
+  townName?: string;
+  cityName?: string;
+  region?: string;
+  assignedCityIds?: string[];
 }
 import { UserForm } from "./user-form";
 import {
@@ -68,7 +74,7 @@ export function UsersView() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("users");
 
-  const fetchUsers = async (search?: string, status?: string, role?: string) => {
+  const fetchUsers = async (search?: string, _status?: string, _role?: string) => {
     try {
       setLoading(true);
       const query: any = {};
@@ -169,13 +175,14 @@ export function UsersView() {
 
     try {
       if (newRecord.role === 'town_manager') {
-        const response = await orpc.admin.user.createManager({
+        const response = await (orpc as any).admin.user.createManager({
           name: newRecord.name,
           phoneNumber: newRecord.phoneNumber,
           password: newRecord.password || 'defaultPassword123',
           townName: newRecord.townName || '',
           cityName: newRecord.cityName || '',
           region: newRecord.region || '',
+          assignedCityIds: (newRecord as any).assignedCityIds || [],
         });
 
         if (response.error) {
@@ -190,7 +197,7 @@ export function UsersView() {
           email: `${newRecord.name.toLowerCase().replace(/\s+/g, '.')}@temp.com`,
           password: newRecord.password || 'defaultPassword123',
           name: newRecord.name,
-          role: newRecord.role as "user" | "admin" | "driver" | "owner",
+          role: newRecord.role as any,
           data: { 
             phoneNumber: newRecord.phoneNumber,
             phoneNumberVerified: true,
@@ -238,12 +245,19 @@ export function UsersView() {
 
       const roleRes = await authClient.admin.setRole({
         userId: updatedUser.id!,
-        role: updatedUser.role as "user" | "admin" | "driver" | "town_manager"
+        role: updatedUser.role as any
       });
 
       if (roleRes.error) {
         toast.error(roleRes.error.message || 'Failed to update user role');
         return;
+      }
+
+      if (updatedUser.role === 'town_manager' && (updatedUser as any).assignedCityIds) {
+        await (orpc as any).admin.user.updateManagerCities({
+          userId: updatedUser.id!,
+          cityIds: (updatedUser as any).assignedCityIds,
+        });
       }
 
       await fetchUsers();
@@ -608,9 +622,9 @@ function UserTableContent({
   setSearchTerm,
   setStatusFilter,
   onMultiDelete,
-  onEdit,
-  onView,
-  onBanToggle,
+  onEdit: _onEdit,
+  onView: _onView,
+  onBanToggle: _onBanToggle,
   openCreateDialog,
 }: {
   data: UserFormData[];

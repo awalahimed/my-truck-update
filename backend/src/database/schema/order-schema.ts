@@ -41,6 +41,17 @@ export const order = mysqlTable('order', {
   pickedUpAt: timestamp('picked_up_at'),
   deliveredAt: timestamp('delivered_at'),
   completedAt: timestamp('completed_at'),
+  // Proof of Delivery (PoD) & Consignee
+  deliveryPin: varchar('delivery_pin', { length: 10 }),
+  consigneeName: varchar('consignee_name', { length: 255 }),
+  consigneePhone: varchar('consignee_phone', { length: 50 }),
+  podWaybillPhoto: text('pod_waybill_photo'),
+  podCargoPhoto: text('pod_cargo_photo'),
+  podCompletedBy: varchar('pod_completed_by', { length: 50 }),
+  podLatitude: decimal('pod_latitude', { precision: 10, scale: 8 }),
+  podLongitude: decimal('pod_longitude', { precision: 11, scale: 8 }),
+  podDisputeReason: text('pod_dispute_reason'),
+  podDisputedAt: timestamp('pod_disputed_at'),
 });
 
 export const orderStatus = {

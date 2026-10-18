@@ -26,6 +26,9 @@ export const corsOptions = {
       // Allow non-browser requests (e.g., health checks, curl) by default
       return '*'
     }
+    if (nodeEnv === 'development') {
+      return origin
+    }
     return allowedOrigins.includes(origin) ? origin : null
   },
   allowMethods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],

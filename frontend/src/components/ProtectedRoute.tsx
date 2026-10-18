@@ -10,22 +10,25 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   const { data: session, isPending } = useSession()
   
+  const user = (session as any)?.user
+  const userRole = user?.role
+
   // Debug session state
   useEffect(() => {
     console.log('ProtectedRoute session debug:', {
       isPending,
       hasSession: !!session,
       sessionData: session,
-      userRole: session?.user?.role,
+      userRole,
       requiredRole,
       cookies: document.cookie
     })
-  }, [session, isPending, requiredRole])
+  }, [session, isPending, requiredRole, userRole])
   
   console.log('ProtectedRoute check:', { 
     isPending, 
     hasSession: !!session, 
-    userRole: session?.user?.role, 
+    userRole, 
     requiredRole 
   })
   
@@ -44,8 +47,8 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
     return <Navigate to="/login" replace />
   }
   
-  if (requiredRole && session.user?.role !== requiredRole) {
-    console.log(`Role mismatch: required ${requiredRole}, got ${session.user?.role}`)
+  if (requiredRole && userRole !== requiredRole) {
+    console.log(`Role mismatch: required ${requiredRole}, got ${userRole}`)
     return <Navigate to="/" replace />
   }
   

@@ -257,9 +257,14 @@ export default function DriverOffers() {
                 </View>
 
                 <View style={styles.offerFooter}>
-                  <Text style={[styles.offerPrice, { color: colors.primary }]}>
-                    {formatNumber(parseFloat(offer.offeredPrice))} ETB
-                  </Text>
+                  <View>
+                    <Text style={[styles.offerPrice, { color: colors.primary }]}>
+                      {formatNumber(parseFloat(offer.offeredPrice))} ETB
+                    </Text>
+                    <Text style={[styles.payoutNetText, { color: colors.success }]}>
+                      Guaranteed Net Payout: {formatNumber(parseFloat(offer.offeredPrice) * 0.9)} ETB (90%)
+                    </Text>
+                  </View>
                   {offer.respondedAt && (
                     <Text style={[styles.respondedText, { color: colors.textSecondary }]}>
                       Responded: {new Date(offer.respondedAt).toLocaleDateString('en-US', {
@@ -384,6 +389,11 @@ const styles = StyleSheet.create({
   offerPrice: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.bold,
+  },
+  payoutNetText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+    marginTop: 2,
   },
   respondedText: {
     fontSize: fontSize.xs,

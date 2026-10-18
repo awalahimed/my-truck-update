@@ -1,7 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { colors } from '@/constants/theme';
-import { Sidebar } from '@/components/user/Sidebar';
 
 class TabsErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -17,7 +16,11 @@ class TabsErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error) {
-    console.warn('⚠️ TabLayout error (likely during logout):', error.message);
+    console.warn('⚠️ TabLayout error (likely during navigation/logout):', error.message);
+    // Auto-recover after transient error
+    setTimeout(() => {
+      this.setState({ hasError: false });
+    }, 100);
   }
 
   render() {
@@ -30,9 +33,7 @@ class TabsErrorBoundary extends React.Component<
 
 export default function TabLayout() {
   return (
-    <>
-      <Sidebar />
-      <TabsErrorBoundary>
+    <TabsErrorBoundary>
         <Tabs
           screenOptions={{
             headerShown: false,
@@ -118,6 +119,5 @@ export default function TabLayout() {
           />
         </Tabs>
       </TabsErrorBoundary>
-    </>
   );
 }

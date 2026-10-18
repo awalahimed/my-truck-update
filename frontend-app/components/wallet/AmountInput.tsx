@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: fontSize['2xl'],
+    fontSize: fontSize.xxl,
     fontWeight: fontWeight.bold,
     padding: 0,
   },

@@ -20,6 +20,29 @@ import { X, Minus, Plus, Locate, Maximize, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
+declare global {
+  namespace GeoJSON {
+    type GeoJsonProperties = Record<string, any> | null;
+    type Point = {
+      type: "Point";
+      coordinates: number[];
+      bbox?: number[];
+    };
+    type Feature<G = any, P = GeoJsonProperties> = {
+      type: "Feature";
+      geometry: G;
+      id?: string | number;
+      properties: P;
+      bbox?: number[];
+    };
+    type FeatureCollection<G = any, P = GeoJsonProperties> = {
+      type: "FeatureCollection";
+      features: Array<Feature<G, P>>;
+      bbox?: number[];
+    };
+  }
+}
+
 // Check document class for theme (works with next-themes, etc.)
 function getDocumentTheme(): Theme | null {
   if (typeof document === "undefined") return null;

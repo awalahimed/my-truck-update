@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CreateOrderMethodSheet } from '@/components/order/CreateOrderMethodSheet';
 import { TopBar } from '@/components/user/TopBar';
 import { DeliveryBottomSheet } from '@/components/user/DeliveryBottomSheet';
 import { OrderBottomSheet } from '@/components/order/OrderBottomSheet';
@@ -38,8 +39,9 @@ interface Order {
 function UserHome() {
   const { session, isLoading } = useAuth();
   const { colors, isDark } = useTheme();
-  const [location, setLocation] = useState(null);
+  const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [showDeliverySheet, setShowDeliverySheet] = useState(false);
+  const [showOrderMethodSheet, setShowOrderMethodSheet] = useState(false);
   const [showOrderFlow, setShowOrderFlow] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [trackingRoute, setTrackingRoute] = useState<any>(null);
@@ -435,26 +437,7 @@ function UserHome() {
         <View style={[styles.orderButtons, { backgroundColor: colors.primary }]}>
           <TouchableOpacity 
             style={[styles.orderButton, styles.deliveryButton]}
-            onPress={() => {
-              Alert.alert(
-                'How would you like to post your load?',
-                'Choose an option below to proceed.',
-                [
-                  {
-                    text: 'Option 1: Post by App',
-                    onPress: () => setShowDeliverySheet(true)
-                  },
-                  {
-                    text: 'Option 2: Contact Call Center',
-                    onPress: () => Linking.openURL('tel:+251912345678')
-                  },
-                  {
-                    text: 'Cancel',
-                    style: 'cancel'
-                  }
-                ]
-              );
-            }}
+            onPress={() => setShowDeliverySheet(true)}
           >
             <Truck size={20} color={colors.white} />
             <Text style={[styles.buttonText, { color: colors.white }]}>Delivery</Text>
@@ -464,15 +447,7 @@ function UserHome() {
             
             <TouchableOpacity 
             style={styles.orderButton}
-            onPress={() => {
-              console.log('Order button pressed, navigating to /order');
-              try {
-                router.push('/order');
-              } catch (error) {
-                console.error('Navigation error:', error);
-                router.replace('/order');
-              }
-            }}
+            onPress={() => setShowOrderMethodSheet(true)}
           >
             <ShoppingBag size={20} color={colors.white} />
             <Text style={[styles.buttonText, { color: colors.white }]}>Order</Text>
@@ -509,15 +484,11 @@ function UserHome() {
         />
       )}
       
-      <OrderBottomSheet
-        visible={showOrderFlow}
-        onClose={() => setShowOrderFlow(false)}
-        onNext={(locationData) => {
-          console.log('Locations:', locationData);
-          setShowOrderFlow(false);
-        }}
-      />
-    </View>
+      <OrderBottomSheet visible={showOrderFlow} onClose={() => setShowOrderFlow(false)} onNext={(locationData) => { console.log('Locations:', locationData); setShowOrderFlow(false); }} /> <CreateOrderMethodSheet 
+        visible={showOrderMethodSheet} 
+        onClose={() => setShowOrderMethodSheet(false)}
+        onShipOnApp={() => { router.push('/order'); }}
+      /> </View>
   );
 }
 
@@ -574,3 +545,5 @@ const styles = StyleSheet.create({
 });
 
 export default UserHome;
+
+

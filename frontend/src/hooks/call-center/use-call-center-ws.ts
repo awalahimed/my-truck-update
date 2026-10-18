@@ -99,7 +99,7 @@ export function useCallCenterWebSocket() {
       
       try {
         const link = new RPCLink({ websocket: ws })
-        const client = createORPCClient<WSRouter>(link)
+        const client = createORPCClient<any>(link)
         orpcClientRef.current = client
         
         console.log('[CallCenter WS] ORPC client created')
@@ -191,25 +191,22 @@ export function useCallCenterWebSocket() {
     }
   }
 
-  // Get nearby agents for an order
-  const getNearbyAgents = async (orderId: string) => {
+  // Get nearby agents for an order (or all agents if orderId omitted)
+  const getNearbyAgents = async (orderId?: string) => {
     try {
-      console.log('[CallCenter] Fetching nearby agents for order:', orderId)
-      const { orpc } = await import('../../lib/oprc')
-      const response = await orpc.order.getNearbyAgents({ orderId })
-      console.log('[CallCenter] Nearby agents response:', response)
-      const agents = response.agents || []
-      console.log('[CallCenter] Agents count:', agents.length)
-      if (agents.length === 0) {
-        toast.info('No agents available with location data')
-      }
-      return agents
+      console.log('[CallCenter] Fetching agents for order:', orderId);
+      const { orpc } = await import('../../lib/oprc');
+      const response = await orpc.order.getNearbyAgents(orderId ? { orderId } : ({} as any));
+      console.log('[CallCenter] Agents response:', response);
+      const agents = response.agents || [];
+      console.log('[CallCenter] Agents count:', agents.length);
+      return agents;
     } catch (error) {
-      console.error('Error fetching nearby agents:', error)
-      toast.error('Failed to fetch nearby agents: ' + (error instanceof Error ? error.message : String(error)))
-      return []
+      console.error('Error fetching nearby agents:', error);
+      toast.error('Failed to fetch agents: ' + (error instanceof Error ? error.message : String(error)));
+      return [];
     }
-  }
+  };
 
   // Approve order with agent assignment (now only assigns, agent must approve first)
   const approveOrderWithAgent = async (orderId: string, agentId: string) => {

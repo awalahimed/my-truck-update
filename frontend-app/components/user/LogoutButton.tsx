@@ -26,19 +26,6 @@ export function LogoutButton({ variant = 'button', onLogoutComplete }: LogoutBut
   const networkState = useNetworkState(false);
 
   const handleLogout = async () => {
-    // Check if remember me is enabled and we're offline
-    const rememberMe = await tokenStorage.getRememberMe();
-    const isOffline = !networkState.isOnline;
-    
-    if (rememberMe && isOffline) {
-      Alert.alert(
-        'Cannot Logout',
-        'You have "Remember Me" enabled and are currently offline. Please connect to the internet to logout, or disable "Remember Me" in settings.',
-        [{ text: 'OK', style: 'default' }]
-      );
-      return;
-    }
-
     Alert.alert(
       'Logout',
       'Are you sure you want to logout?',

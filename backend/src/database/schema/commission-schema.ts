@@ -43,7 +43,27 @@ export const assistanceVerificationRelations = relations(assistanceVerification,
   verifiedBy: one(user, { fields: [assistanceVerification.verifiedById], references: [user.id] }),
 }));
 
+/**
+ * Escrow Commission table
+ * Tracks collected platform commission from completed orders
+ */
+export const commissions = mysqlTable('commissions', {
+  id: varchar('id', { length: 36 }).primaryKey(),
+  orderId: varchar('order_id', { length: 255 })
+    .notNull()
+    .references(() => order.id, { onDelete: 'cascade' }),
+  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('collected'), // 'collected', 'pending'
+  createdAt: timestamp('created_at', { fsp: 3 }).defaultNow().notNull(),
+});
+
+export const commissionsRelations = relations(commissions, ({ one }) => ({
+  order: one(order, { fields: [commissions.orderId], references: [order.id] }),
+}));
+
 export type CommissionHistory = typeof commissionHistory.$inferSelect;
 export type NewCommissionHistory = typeof commissionHistory.$inferInsert;
 export type AssistanceVerification = typeof assistanceVerification.$inferSelect;
 export type NewAssistanceVerification = typeof assistanceVerification.$inferInsert;
+export type Commission = typeof commissions.$inferSelect;
+export type NewCommission = typeof commissions.$inferInsert;

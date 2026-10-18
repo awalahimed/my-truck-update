@@ -5,11 +5,11 @@ import { vehicle } from '../database/schema/vehicle-schema.js';
 import { wallet, walletTransaction } from '../database/schema/wallet-schema.js';
 import { agentProfile } from '../database/schema/agent-schema.js';
 import { commissionHistory, assistanceVerification, NewCommissionHistory } from '../database/schema/commission-schema.js';
-// Manager tables - not yet implemented
-// import { townManager, territory, managerCompensation } from '../database/schema/manager-schema.js';
+import { townManager, territory, managerCompensation, managerAssignedCities } from '../database/schema/manager-schema.js';
+import { cities } from '../database/schema/master-data-schema.js';
 import { eq, and, sql } from 'drizzle-orm';
 import { getTierMultiplier } from './tier.js';
-import crypto from 'node:crypto';
+import crypto, { randomUUID } from 'node:crypto';
 import { logger } from '../utils/logger.js';
 
 const PLATFORM_COMMISSION_RATE = 0.07; // 7% of final freight value
@@ -27,6 +27,7 @@ const DRIVER_COMMISSION_RATES = [
 ];
 
 const ASSISTED_COMMISSION_RATE = 0.15; // 15% of platform commission
+const TOWN_MANAGER_TERRITORIAL_RATE = 0.015; // 1.5% of total freight value for origin Town Manager
 
 async function getAgentTier(agentId: string): Promise<string> {
   try {
@@ -91,6 +92,9 @@ export async function calculateCommission(orderId: string): Promise<void> {
 
     // Process Assisted Commission
     await processAssistedCommission(orderData, platformCommissionBase);
+
+    // Process Town Manager Territorial Origin Commission (1.5% of trip freight value)
+    await processTerritorialManagerCommission(orderData, finalPrice);
 
     logger.info(`[CommissionService] Completed commission calculation for order: ${orderId}`);
   } catch (error) {
@@ -394,7 +398,6 @@ async function recordAndCreditCommission(data: {
 
 /**
  * Process manager override commission (5% of agent earnings)
- * TODO: Implement when manager schema is finalized
  */
 async function processManagerCompensation(
   agentId: string,
@@ -403,10 +406,156 @@ async function processManagerCompensation(
   agentCommissionAmount: number
 ): Promise<void> {
   try {
-    // Manager compensation feature not yet implemented
-    logger.debug(`[CommissionService] Manager compensation pending implementation for agent ${agentId}`);
+    const [agentTerritory] = await db
+      .select({ managerId: territory.managerId })
+      .from(territory)
+      .where(and(eq(territory.agentId, agentId), eq(territory.status, 'active')))
+      .limit(1);
+
+    if (!agentTerritory) return;
+
+    const managerCut = Math.round(agentCommissionAmount * MANAGER_OVERRIDE_COMMISSION_RATE * 100) / 100;
+    if (managerCut <= 0) return;
+
+    const [mgr] = await db
+      .select()
+      .from(townManager)
+      .where(eq(townManager.id, agentTerritory.managerId))
+      .limit(1);
+
+    if (!mgr) return;
+
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    await db.insert(managerCompensation).values({
+      id: randomUUID(),
+      managerId: mgr.id,
+      type: compensationType,
+      amount: managerCut.toFixed(2),
+      sourceAgentId: agentId,
+      referenceId: orderId,
+      month: currentMonth,
+      status: 'approved',
+    });
+
+    logger.info(`[CommissionService] Recorded ${managerCut} ETB agent override for Manager ${mgr.townName}`);
   } catch (error) {
     logger.error(`[CommissionService] Error processing manager compensation for agent ${agentId}:`, error);
-    // Don't throw - manager compensation is supplementary
+  }
+}
+
+/**
+ * Process Town Manager territorial commission (1.5% of trip freight value)
+ * Automatically credits the local Town Manager who oversees the pickup origin city!
+ */
+async function processTerritorialManagerCommission(
+  orderData: typeof order.$inferSelect,
+  finalPrice: number
+): Promise<void> {
+  try {
+    const allCities = await db.select().from(cities).where(eq(cities.isActive, true));
+    const pickupLower = (orderData.pickupAddress || '').toLowerCase();
+    const matchedCity = allCities.find(
+      (c) => pickupLower.includes(c.nameEn.toLowerCase()) || pickupLower.includes(c.nameAm)
+    );
+
+    if (!matchedCity) {
+      logger.info(`[CommissionService] No matching master city found for pickup address: "${orderData.pickupAddress}". Skipping territorial commission.`);
+      return;
+    }
+
+    // Find assigned manager for this origin city
+    const [assigned] = await db
+      .select({ manager: townManager })
+      .from(managerAssignedCities)
+      .innerJoin(townManager, eq(managerAssignedCities.managerId, townManager.id))
+      .where(eq(managerAssignedCities.cityId, matchedCity.id))
+      .limit(1);
+
+    if (!assigned?.manager) {
+      logger.info(`[CommissionService] No assigned Town Manager for origin city ${matchedCity.nameEn} (${matchedCity.id}).`);
+      return;
+    }
+
+    const manager = assigned.manager;
+    const managerPayout = Math.round(finalPrice * TOWN_MANAGER_TERRITORIAL_RATE * 100) / 100;
+    if (managerPayout <= 0) return;
+
+    const currentMonth = new Date().toISOString().slice(0, 7);
+
+    // 1. Record manager compensation ledger
+    await db.insert(managerCompensation).values({
+      id: randomUUID(),
+      managerId: manager.id,
+      type: 'territorial_override',
+      amount: managerPayout.toFixed(2),
+      referenceId: orderData.id,
+      month: currentMonth,
+      status: 'approved',
+    });
+
+    // 2. Find or create manager digital wallet
+    let [managerWallet] = await db
+      .select()
+      .from(wallet)
+      .where(eq(wallet.userId, manager.userId))
+      .limit(1);
+
+    if (!managerWallet) {
+      const newWalletId = randomUUID();
+      await db.insert(wallet).values({
+        id: newWalletId,
+        userId: manager.userId,
+        balance: '0.00',
+        reservedBalance: '0.00',
+        totalTopup: '0.00',
+        totalWithdrawn: '0.00',
+        isActive: true,
+      });
+
+      [managerWallet] = await db
+        .select()
+        .from(wallet)
+        .where(eq(wallet.id, newWalletId))
+        .limit(1);
+    }
+
+    if (managerWallet) {
+      // 3. Credit wallet balance
+      await db
+        .update(wallet)
+        .set({
+          balance: sql`${wallet.balance} + ${managerPayout}`,
+          totalTopup: sql`${wallet.totalTopup} + ${managerPayout}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(wallet.id, managerWallet.id));
+
+      // 4. Create wallet transaction
+      await db.insert(walletTransaction).values({
+        id: randomUUID(),
+        userId: manager.userId,
+        walletId: managerWallet.id,
+        type: 'commission',
+        amount: managerPayout.toFixed(2),
+        description: `Town Manager 1.5% Territorial Commission for Order ${orderData.id} originating from ${matchedCity.nameEn}`,
+        status: 'completed',
+        referenceId: orderData.id,
+      });
+    }
+
+    // 5. Update regional revenue on townManager
+    await db
+      .update(townManager)
+      .set({
+        regionalRevenue: sql`COALESCE(${townManager.regionalRevenue}, 0) + ${finalPrice}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(townManager.id, manager.id));
+
+    logger.info(
+      `[CommissionService] ✅ Credited ${managerPayout} ETB territorial commission to Town Manager ${manager.townName} (User ${manager.userId}) for Order ${orderData.id}`
+    );
+  } catch (error) {
+    logger.error('[CommissionService] Error processing territorial manager commission:', error);
   }
 }

@@ -1,0 +1,1 @@
+ALTER TABLE `agent_profile` MODIFY COLUMN `tier` varchar(20) NOT NULL DEFAULT 'new';

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useCallCenterWebSocket } from '@/hooks/call-center/use-call-center-ws';
 import { AgentSelectionDialog } from '@/components/call-center/AgentSelectionDialog';
+import { CallCenterOrderForm } from '@/components/call-center/CallCenterOrderForm';
 import { StatsCards } from '@/components/call-center/StatsCards';
 import { OrderCard } from '@/components/call-center/OrderCard';
 import { DriversDrawer } from '@/components/call-center/DriversDrawer';
@@ -60,6 +61,7 @@ export default function CallCenterPage() {
   // Agent selection state
   const [agentSelectionOpen, setAgentSelectionOpen] = useState(false);
   const [agentSelectionOrderId, setAgentSelectionOrderId] = useState<string | null>(null);
+  const [createOrderOpen, setCreateOrderOpen] = useState(false);
   const [availableAgents, setAvailableAgents] = useState<any[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
@@ -97,6 +99,21 @@ export default function CallCenterPage() {
       fetchAgentApprovedOrders();
     }
   }, [orderTab]);
+
+  // Prefetch agents on mount so Call Center Order Form has available agents immediately
+  useEffect(() => {
+    const prefetchAgents = async () => {
+      try {
+        const agents = await getNearbyAgents();
+        if (agents && agents.length > 0) {
+          setAvailableAgents(agents);
+        }
+      } catch (err) {
+        console.warn('Failed to prefetch agents:', err);
+      }
+    };
+    prefetchAgents();
+  }, []);
 
   const handleLogoutClick = () => {
     setLogoutDialogOpen(true);
@@ -246,7 +263,7 @@ export default function CallCenterPage() {
     try {
       setApprovedOrdersLoading(true);
       const { orpc } = await import('@/lib/oprc');
-      const result = await orpc.agent.getApprovedByAgentOrders();
+      const result = await (orpc.agent as any).getApprovedByAgentOrders();
       setAgentApprovedOrders(result.orders || []);
     } catch (error) {
       console.error('Error fetching agent-approved orders:', error);
@@ -484,6 +501,46 @@ export default function CallCenterPage() {
           </Button>
         </div>
         
+        {/* Create Manual Order Button */}
+        <Button
+          variant="default"
+          onClick={async () => {
+            setCreateOrderOpen(true);
+            try {
+              const { orpc } = await import('@/lib/oprc');
+              const result = await orpc.admin.agents.list();
+              setAvailableAgents(result.agents || []);
+            } catch (err) {
+              console.error(err);
+            }
+          }}
+          className="h-8 md:h-10 px-4 rounded-lg shadow-lg hidden md:flex items-center gap-2"
+          title="Create Order"
+        >
+          <Package className="w-4 h-4" />
+          <span>Create Order</span>
+        </Button>
+        
+        {/* Mobile Create Button */}
+        <Button
+          size="icon"
+          variant="default"
+          onClick={async () => {
+            setCreateOrderOpen(true);
+            try {
+              const { orpc } = await import('@/lib/oprc');
+              const result = await orpc.admin.agents.list();
+              setAvailableAgents(result.agents || []);
+            } catch (err) {
+              console.error(err);
+            }
+          }}
+          className="h-8 w-8 md:hidden rounded-lg shadow-lg"
+          title="Create Order"
+        >
+          <Package className="w-3.5 h-3.5" />
+        </Button>
+
         {/* Drivers Button */}
         <Button
           size="icon"
@@ -665,11 +722,11 @@ export default function CallCenterPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4" />
-                            <span>{order.pickupAddress || order.pickupLocation?.latitude}</span>
+                            <span>{order.pickupAddress || (order as any).pickupLocation?.latitude}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Navigation className="w-4 h-4" />
-                            <span>{order.deliveryAddress || order.deliveryLocation?.latitude}</span>
+                            <span>{order.deliveryAddress || (order as any).deliveryLocation?.latitude}</span>
                           </div>
                         </div>
                       </div>
@@ -710,15 +767,15 @@ export default function CallCenterPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4" />
-                            <span>{order.pickupLocation}</span>
+                            <span>{order.pickupAddress}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Navigation className="w-4 h-4" />
-                            <span>{order.deliveryLocation}</span>
+                            <span>{order.deliveryAddress}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Package className="w-4 h-4" />
-                            <span>{order.materialType}</span>
+                            <span>{Array.isArray(order.materials) ? order.materials.join(', ') : order.materials}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4" />
@@ -803,6 +860,7 @@ export default function CallCenterPage() {
         onAgentSelect={handleAgentSelected}
         onConfirm={handleAgentConfirm}
         orderId={agentSelectionOrderId || ''}
+        orderPickupAddress={allOrders.find(o => o.id === agentSelectionOrderId)?.pickupAddress}
       />
 
       <DriversDrawer
@@ -814,6 +872,23 @@ export default function CallCenterPage() {
         onFilterChange={setDriverFilter}
         formatTimeAgo={formatTimeAgo}
       />
+
+      {/* Create Order Dialog */}
+      <Dialog open={createOrderOpen} onOpenChange={setCreateOrderOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Call Center Order</DialogTitle>
+            <DialogDescription>
+              Create a new order on behalf of a customer and assign it to an agent.
+            </DialogDescription>
+          </DialogHeader>
+          <CallCenterOrderForm 
+            onSuccess={() => setCreateOrderOpen(false)}
+            onCancel={() => setCreateOrderOpen(false)}
+            availableAgents={availableAgents}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -67,7 +67,7 @@ function shouldLog(level: LogLevelName): boolean {
   return LOG_LEVELS[level] <= currentLevelValue && currentLevelValue > 0
 }
 
-function baseLog(level: LogLevelName, message: unknown, meta?: Record<string, unknown>) {
+function baseLog(level: LogLevelName, message: unknown, meta?: unknown) {
   const payload = {
     time: formatNow(),
     level,
@@ -87,19 +87,19 @@ function baseLog(level: LogLevelName, message: unknown, meta?: Record<string, un
 }
 
 export const logger = {
-  error(message: unknown, meta?: Record<string, unknown>) {
+  error(message: unknown, meta?: unknown) {
     if (shouldLog('error')) baseLog('error', message, meta)
   },
-  warn(message: unknown, meta?: Record<string, unknown>) {
+  warn(message: unknown, meta?: unknown) {
     if (shouldLog('warn')) baseLog('warn', message, meta)
   },
-  info(message: unknown, meta?: Record<string, unknown>) {
+  info(message: unknown, meta?: unknown) {
     if (shouldLog('info')) baseLog('info', message, meta)
   },
-  debug(message: unknown, meta?: Record<string, unknown>) {
+  debug(message: unknown, meta?: unknown) {
     if (shouldLog('debug')) baseLog('debug', message, meta)
   },
-  trace(message: unknown, meta?: Record<string, unknown>) {
+  trace(message: unknown, meta?: unknown) {
     if (shouldLog('trace')) baseLog('trace', message, meta)
   },
 } as const

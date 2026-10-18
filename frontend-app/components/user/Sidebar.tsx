@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useAlert } from '@/components/shared/CustomAlert';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, useWindowDimensions, Image, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, useWindowDimensions, Image, Switch, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, User, Wallet, ShoppingBag, Settings, HelpCircle, Bell, Megaphone } from 'lucide-react-native';
@@ -11,6 +11,7 @@ import { useNetworkState } from '@/hooks/useNetworkState';
 import { useDriverStatus } from '@/hooks/DriverStatusContext';
 import { useWebSocketContext } from '@/hooks/WebSocketContext';
 import { LogoutButton } from './LogoutButton';
+export { LogoutButton };
 import { orpc as client } from '@/hooks/orpc';
 import { config } from '@/config/config';
 import '@/types/auth';
@@ -153,21 +154,20 @@ export const Sidebar: React.FC = () => {
 
   const getWalletRoute = () => {
     const role = session?.user?.role;
-    if (role === 'driver') return '/driver/wallet';
-    if (role === 'agent_delala') return '/agent/wallet';
-    return '/user/wallet';
+    if (role === 'driver') return '/(tabs)/driver/wallet';
+    return '/(tabs)/user/wallet';
   };
 
   const menuItems = useMemo(() => {
     const isDriver = session?.user?.role === 'driver';
     
     return [
-      { icon: User, label: 'Profile', onPress: () => router.push('/shared/profile') },
+      { icon: User, label: 'Profile', onPress: () => router.push('/(tabs)/shared/profile') },
       { icon: Wallet, label: 'Wallet', onPress: () => router.push(getWalletRoute() as any) },
-      { icon: ShoppingBag, label: isDriver ? 'Offers' : 'Orders', onPress: () => router.push('/shared/orders') },
+      { icon: ShoppingBag, label: isDriver ? 'Offers' : 'Orders', onPress: () => router.push('/(tabs)/shared/orders') },
       { icon: Megaphone, label: 'Announcements', onPress: () => router.push('/shared/announcements') },
-      { icon: Bell, label: 'Notifications', onPress: () => router.push('/shared/notifications') },
-      { icon: Settings, label: 'Settings', onPress: () => router.push('/shared/settings') },
+      { icon: Bell, label: 'Notifications', onPress: () => router.push('/(tabs)/shared/notifications') },
+      { icon: Settings, label: 'Settings', onPress: () => router.push('/(tabs)/shared/settings') },
     ];
   }, [session?.user?.role]);
 
@@ -216,7 +216,6 @@ export const Sidebar: React.FC = () => {
           style={styles.backdrop}
           onPress={handleClose}
           activeOpacity={0.5}
-          pointerEvents="auto"
         />
       )}
 

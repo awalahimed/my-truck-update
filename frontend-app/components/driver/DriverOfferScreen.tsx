@@ -9,6 +9,7 @@ import BottomSheet, { BottomSheetView, BottomSheetBackdrop, BottomSheetScrollVie
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { MapComponent } from '../shared/MapComponent'
 import * as Location from 'expo-location'
+import { orpc } from '@/hooks/orpc'
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 
@@ -62,20 +63,33 @@ export const DriverOfferScreen: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    if (!connected || !orpcClient) return
-    
     // Don't make API calls if user is not a driver
     if (!session?.user || session.user.role !== 'driver') return
 
     const fetchOrders = async () => {
       try {
         setLoading(true)
-        const result = await orpcClient.driver.getAvailableOrders()
-        const allOrders = result.orders || []
+        let allOrders: any[] = []
+        if (orpcClient && connected) {
+          try {
+            const result = await orpcClient.driver.getAvailableOrders()
+            allOrders = result.orders || []
+          } catch (e) {
+            console.warn('WS getAvailableOrders failed, trying HTTP:', e)
+          }
+        }
+        if (allOrders.length === 0) {
+          try {
+            const res = await orpc.order.getPendingOrders()
+            allOrders = res.orders || []
+          } catch (e) {
+            console.error('HTTP getPendingOrders failed:', e)
+          }
+        }
         const visibleOrders = allOrders
-          .filter((o: any) => ['pending', 'assigned', 'accepted'].includes(o?.status))
+          .filter((o: any) => ['approved', 'has_offers', 'assigned', 'accepted'].includes(o?.status))
           .sort((a: any, b: any) => {
-            const rank = (s: string) => (s === 'pending' ? 0 : 1)
+            const rank = (s: string) => (s === 'approved' ? 0 : s === 'has_offers' ? 1 : 2)
             const r = rank(a?.status) - rank(b?.status)
             if (r !== 0) return r
             return new Date(b?.createdAt ?? 0).getTime() - new Date(a?.createdAt ?? 0).getTime()
@@ -97,14 +111,15 @@ export const DriverOfferScreen: React.FC = () => {
 
   const handleSelectOrder = (order: any) => {
     setSelectedOrder(order)
-    // Check if driver already has an offer for this order
+    // Check if driver already has an offer for this order, or pre-fill with fixed benchmark rate
     const existingOffer = order.driverOffer
-    setOfferedPrice(existingOffer?.toString() || '')
+    const initialPrice = existingOffer?.toString() || (order.estimatedPrice ? Math.round(parseFloat(order.estimatedPrice)).toString() : '')
+    setOfferedPrice(initialPrice)
     bottomSheetRef.current?.expand()
   }
 
   const handleSubmitOffer = async () => {
-    if (!orpcClient || !selectedOrder) return
+    if (!selectedOrder) return
 
     const price = parseFloat(offeredPrice)
     
@@ -123,21 +138,47 @@ export const DriverOfferScreen: React.FC = () => {
 
     try {
       setSubmitting(true)
-      await orpcClient.driver.createOffer({
-        orderId: selectedOrder.id,
-        offeredPrice: price,
-      })
+      let submitted = false
+      if (orpcClient && connected) {
+        try {
+          await orpcClient.driver.createOffer({
+            orderId: selectedOrder.id,
+            offeredPrice: price,
+          })
+          submitted = true
+        } catch (wsErr: any) {
+          console.warn('WS createOffer failed, trying HTTP:', wsErr)
+        }
+      }
+
+      if (!submitted) {
+        await orpc.order.createOffer({
+          orderId: selectedOrder.id,
+          offeredPrice: price,
+        })
+      }
       
       showAlert({ title: 'Success', message: 'Your offer has been submitted!' })
       handleCancel()
       
       // Refresh orders list
-      const result = await orpcClient.driver.getAvailableOrders()
-      const allOrders = result.orders || []
-      const visibleOrders = allOrders.filter((o: any) => ['pending', 'assigned', 'accepted'].includes(o?.status))
+      let allOrders: any[] = []
+      if (orpcClient && connected) {
+        try {
+          const result = await orpcClient.driver.getAvailableOrders()
+          allOrders = result.orders || []
+        } catch (e) {}
+      }
+      if (allOrders.length === 0) {
+        try {
+          const res = await orpc.order.getPendingOrders()
+          allOrders = res.orders || []
+        } catch (e) {}
+      }
+      const visibleOrders = allOrders.filter((o: any) => ['approved', 'has_offers', 'assigned', 'accepted'].includes(o?.status))
       setOrders(visibleOrders)
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to submit offer')
+      showAlert({ title: 'Error', message: error.message || 'Failed to submit offer' })
     } finally {
       setSubmitting(false)
     }
@@ -391,9 +432,9 @@ export const DriverOfferScreen: React.FC = () => {
                     </Text>
                   ) : (
                     <Text style={styles.hint}>
-                      {selectedOrder.driverOffer 
-                        ? 'You can update your offer (max: 99,999,999.99 ETB)'
-                        : 'Enter your delivery charge (max: 99,999,999.99 ETB)'}
+                      {selectedOrder.estimatedPrice 
+                        ? `Official Regional Tariff: ~${parseFloat(selectedOrder.estimatedPrice).toLocaleString()} ETB. You can accept directly at this guaranteed rate.`
+                        : 'Enter your competitive delivery charge within the regional benchmark range.'}
                     </Text>
                   )}
                 </View>
@@ -417,7 +458,11 @@ export const DriverOfferScreen: React.FC = () => {
                       <ActivityIndicator color={colors.surface} size="small" />
                     ) : (
                       <Text style={styles.submitButtonText}>
-                        {selectedOrder.driverOffer ? 'Update Offer' : 'Submit Offer'}
+                        {selectedOrder.driverOffer 
+                          ? 'Update Offer' 
+                          : selectedOrder.estimatedPrice 
+                            ? `Accept Job (${parseFloat(selectedOrder.estimatedPrice).toLocaleString()} ETB)`
+                            : 'Submit Offer'}
                       </Text>
                     )}
                   </TouchableOpacity>

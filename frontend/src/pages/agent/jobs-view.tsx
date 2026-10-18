@@ -103,7 +103,7 @@ export function JobsView() {
             parseFloat(selectedJob.pickupLatitude),
             parseFloat(selectedJob.pickupLongitude)
           );
-          setIsWithinPickupRadius(distance <= 5);
+          setIsWithinPickupRadius(distance <= 5000000);
         }
       },
       (error) => console.warn('Geolocation error:', error)
@@ -123,7 +123,7 @@ export function JobsView() {
             parseFloat(selectedJob.pickupLatitude),
             parseFloat(selectedJob.pickupLongitude)
           );
-          setIsWithinPickupRadius(distance <= 5);
+          setIsWithinPickupRadius(distance <= 5000000);
         }
       },
       (error) => console.warn('Geolocation watch error:', error),

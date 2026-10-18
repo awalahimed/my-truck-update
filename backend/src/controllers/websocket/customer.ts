@@ -7,6 +7,7 @@ import { vehicle } from '../../database/schema/vehicle-schema.js'
 import { driverOffer, offerStatus } from '../../database/schema/driver-offer-schema.js'
 import { eq, and, ne } from 'drizzle-orm'
 import { notifyCustomerOrderUpdate } from '../../utils/websocket-broadcast.js'
+import { getTrackingStore } from '../../services/tracking/tracking-store.js'
 
 // Store active subscriptions: orderId -> Set of customer userIds
 const orderSubscriptions = new Map<string, Set<string>>()
@@ -35,7 +36,17 @@ export const customerController = {
       }
       orderSubscriptions.get(orderId)!.add(customerId)
 
-      return { success: true, message: 'Subscribed to order updates' }
+      // Also register in the live Tracking Store
+      getTrackingStore().subscribeToTrip(orderId, customerId)
+
+      // Fetch latest live location if available
+      const latestLocation = await getTrackingStore().getLatestLocation(orderId)
+
+      return { 
+        success: true, 
+        message: 'Subscribed to order updates',
+        latestLocation
+      }
     }),
 
   unsubscribeFromOrderUpdates: wsAuthProcedure
@@ -52,7 +63,17 @@ export const customerController = {
         }
       }
 
+      // Unsubscribe from live Tracking Store
+      getTrackingStore().unsubscribeFromTrip(orderId, customerId)
+
       return { success: true, message: 'Unsubscribed from order updates' }
+    }),
+
+  getDriverLocation: wsAuthProcedure
+    .input(z.object({ orderId: z.string() }))
+    .handler(async ({ input }) => {
+      const location = await getTrackingStore().getLatestLocation(input.orderId)
+      return { success: true, location }
     }),
 
   getMyOrders: wsAuthProcedure

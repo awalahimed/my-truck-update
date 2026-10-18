@@ -37,7 +37,7 @@ export function useCallCenter() {
   const fetchPendingOrders = async () => {
     try {
       const response = await orpc.order.getPendingOrders()
-      setPendingOrders(response.orders || [])
+      setPendingOrders((response.orders as any) || [])
     } catch (error) {
       console.error('Error fetching pending orders:', error)
       // Don't show toast on every poll failure to avoid spam
@@ -48,7 +48,7 @@ export function useCallCenter() {
   const fetchAllOrders = async () => {
     try {
       const response = await orpc.order.getMyOrders()
-      setAllOrders(response.orders || [])
+      setAllOrders((response.orders as any) || [])
     } catch (error) {
       console.error('Error fetching all orders:', error)
     } finally {

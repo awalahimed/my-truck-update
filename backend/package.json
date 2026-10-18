@@ -8,12 +8,13 @@
     "debug": "tsx watch --inspect src/index.ts",
     "build": "tsc",
     "serve": "node dist/index.js",
-    "migrate:run": "drizzle-kit migrate",
-    "migrate:reset": "drizzle-kit drop",
-    "migrate:generate": "drizzle-kit generate",
+    "migrate:run": "tsx node_modules/drizzle-kit/bin.cjs migrate",
+    "migrate:reset": "tsx node_modules/drizzle-kit/bin.cjs drop",
+    "migrate:generate": "tsx node_modules/drizzle-kit/bin.cjs generate",
     "test:sms": "tsx test-sms.ts",
     "fix-order": "tsx src/database/seeds/fix-stuck-order.ts",
-    "orders:pending": "tsx src/commands/set-orders-pending.ts"
+    "orders:pending": "tsx src/commands/set-orders-pending.ts",
+    "tunnel": "..\\cloudflared.exe tunnel --protocol http2 --url http://localhost:3002"
   },
   "keywords": [],
   "author": "",

@@ -3,8 +3,10 @@ import { os, ORPCError } from '@orpc/server';
 import { adminProcedure } from '../../middlewares/auth-admin.js';
 import { db } from '../../database/db.js';
 import { user, accountStatus } from '../../database/schema/auth-schema.js';
-import { townManager } from '../../database/schema/manager-schema.js';
+import { townManager, managerAssignedCities } from '../../database/schema/manager-schema.js';
+import { cities } from '../../database/schema/master-data-schema.js';
 import { eq } from 'drizzle-orm';
+import crypto from 'crypto';
 
 console.log('[Admin User Controller] Loading user controller...');
 
@@ -18,6 +20,7 @@ export const adminUserController = os.router({
       townName: z.string().min(1),
       cityName: z.string().min(1),
       region: z.string().min(1),
+      assignedCityIds: z.array(z.string()).optional(),
     }))
     .handler(async ({ input }) => {
       try {
@@ -67,6 +70,32 @@ export const adminUserController = os.router({
           approvalStatus: 'approved',
           contactPhone: input.phoneNumber,
         });
+
+        // Persist assigned operational cities
+        if (input.assignedCityIds && input.assignedCityIds.length > 0) {
+          for (const cityId of input.assignedCityIds) {
+            await db.insert(managerAssignedCities).values({
+              id: crypto.randomUUID(),
+              managerId,
+              cityId,
+            });
+          }
+        } else {
+          // Attempt automatic match by cityName
+          const [matchedCity] = await db
+            .select({ id: cities.id })
+            .from(cities)
+            .where(eq(cities.nameEn, input.cityName))
+            .limit(1);
+
+          if (matchedCity) {
+            await db.insert(managerAssignedCities).values({
+              id: crypto.randomUUID(),
+              managerId,
+              cityId: matchedCity.id,
+            });
+          }
+        }
 
         return {
           success: true,
@@ -144,6 +173,68 @@ export const adminUserController = os.router({
         console.error('[Admin] Error restoring user:', error);
         throw error;
       }
+    }),
+
+  // Update manager's assigned operational cities
+  updateManagerCities: adminProcedure
+    .input(z.object({
+      userId: z.string(),
+      cityIds: z.array(z.string()),
+    }))
+    .handler(async ({ input }) => {
+      const [mgr] = await db
+        .select({ id: townManager.id })
+        .from(townManager)
+        .where(eq(townManager.userId, input.userId))
+        .limit(1);
+
+      if (!mgr) {
+        throw new ORPCError('NOT_FOUND', { message: 'Town Manager profile not found' });
+      }
+
+      // Remove existing assigned cities
+      await db
+        .delete(managerAssignedCities)
+        .where(eq(managerAssignedCities.managerId, mgr.id));
+
+      // Insert new assigned cities
+      for (const cityId of input.cityIds) {
+        await db.insert(managerAssignedCities).values({
+          id: crypto.randomUUID(),
+          managerId: mgr.id,
+          cityId,
+        });
+      }
+
+      return { success: true, message: 'Manager assigned cities updated successfully' };
+    }),
+
+  // Get manager's assigned operational cities
+  getManagerCities: adminProcedure
+    .input(z.object({ userId: z.string() }))
+    .handler(async ({ input }) => {
+      const [mgr] = await db
+        .select({ id: townManager.id })
+        .from(townManager)
+        .where(eq(townManager.userId, input.userId))
+        .limit(1);
+
+      if (!mgr) {
+        return { success: false, cities: [] };
+      }
+
+      const assigned = await db
+        .select({
+          id: cities.id,
+          nameEn: cities.nameEn,
+          nameAm: cities.nameAm,
+          region: cities.region,
+        })
+        .from(managerAssignedCities)
+        .innerJoin(cities, eq(managerAssignedCities.cityId, cities.id))
+        .where(eq(managerAssignedCities.managerId, mgr.id));
+
+      return { success: true, cities: assigned };
     }),
 });
 

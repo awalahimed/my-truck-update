@@ -238,6 +238,35 @@ export const agentController = os.router({
       return { success: true, orders: ordersWithCustomers };
     }),
 
+  // Returns all orders with status approved_by_agent — used by Call Center "Agent Approved" tab
+  getApprovedByAgentOrders: authProcedure
+    .handler(async ({ context }) => {
+      if (context.user.role !== 'call_center' && context.user.role !== 'admin') {
+        throw new Error('Only call center agents can access this');
+      }
+
+      const approvedOrders = await db.select()
+        .from(order)
+        .where(eq(order.status, orderStatus.APPROVED_BY_AGENT))
+        .orderBy(order.createdAt);
+
+      const customerIds = [...new Set(approvedOrders.map((o) => o.customerId))];
+      const customers = customerIds.length > 0
+        ? await db.select({ id: user.id, name: user.name, phoneNumber: user.phoneNumber })
+            .from(user)
+            .where(inArray(user.id, customerIds))
+        : [];
+
+      const customerMap = new Map(customers.map((c) => [c.id, c]));
+      const ordersWithCustomers = approvedOrders.map((o) => ({
+        ...o,
+        customerName: customerMap.get(o.customerId)?.name || 'Unknown',
+        customerPhone: customerMap.get(o.customerId)?.phoneNumber || 'N/A',
+      }));
+
+      return { success: true, orders: ordersWithCustomers };
+    }),
+
   // Commission analytics endpoints
   commissions: os.router({
     getUserProgression: authProcedure

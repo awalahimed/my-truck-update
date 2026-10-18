@@ -25,6 +25,7 @@ export interface Wallet {
   id: string;
   userId: string;
   balance: string;
+  reservedBalance?: string;
   totalTopup: string;
   totalWithdrawn: string;
   isActive: boolean;
@@ -56,7 +57,7 @@ export function useWallet() {
 
     try {
       const res = await orpc.wallet.getTransactions({ limit: 20 });
-      setTransactions(res.transactions);
+      setTransactions((res.transactions || []) as any);
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
     }

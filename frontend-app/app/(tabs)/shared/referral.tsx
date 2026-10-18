@@ -252,7 +252,13 @@ export default function Referral() {
           backgroundColor={colors.background} 
         />
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => {
+            if (session?.user?.role === 'driver') {
+              router.replace('/(tabs)/driver/home');
+            } else {
+              router.replace('/(tabs)/user/home');
+            }
+          }}>
             <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={[styles.title, { color: colors.text }]}>Referral Program</Text>
@@ -278,7 +284,13 @@ export default function Referral() {
 
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => {
+          if (session?.user?.role === 'driver') {
+            router.replace('/(tabs)/driver/home');
+          } else {
+            router.replace('/(tabs)/user/home');
+          }
+        }}>
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.text }]}>Referral Program</Text>

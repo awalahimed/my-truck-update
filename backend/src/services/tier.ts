@@ -271,7 +271,7 @@ export function getProgressToNext(stats: AgentTierStats, currentTier: Tier): {
   if (tierIndex >= TIERS.length - 1) {
     return { nextTier: null, progress: {} };
   }
-  const nextTier = TIERS[tierIndex + 1] as Tier;
+  const nextTier = TIERS[tierIndex + 1] as Exclude<Tier, 'new'>;
   const req = TIER_REQUIREMENTS[nextTier];
 
   const progress: Record<string, { current: number; required: number; met: boolean }> = {

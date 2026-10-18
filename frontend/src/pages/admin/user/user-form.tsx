@@ -16,8 +16,11 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, X, MapPin, Check } from "lucide-react"
 import { PhoneInput } from "@/components/phone-input"
+import { Badge } from "@/components/ui/badge"
+import { orpc } from "@/lib/oprc"
+import { useEffect } from "react"
 
 const ETHIOPIAN_REGIONS = [
   "Addis Ababa",
@@ -71,6 +74,7 @@ export interface UserFormData {
   townName?: string;
   cityName?: string;
   region?: string;
+  assignedCityIds?: string[];
 }
 
 interface UserFormProps {
@@ -90,9 +94,41 @@ export function UserForm({ onSubmit, initialData }: UserFormProps) {
     townName: initialData?.townName || "",
     cityName: initialData?.cityName || "",
     region: initialData?.region || "",
+    assignedCityIds: (initialData as any)?.assignedCityIds || [],
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [masterCities, setMasterCities] = useState<Array<{ id: string; nameEn: string; nameAm: string; region: string }>>([])
+  const [citySearchTerm, setCitySearchTerm] = useState("")
+
+  // Fetch verified active master cities
+  useEffect(() => {
+    (orpc as any).admin.masterData.listCities().then((res: any) => {
+      const active = (res?.data || []).filter((c: any) => c.isActive);
+      setMasterCities(active);
+    }).catch((err: any) => {
+      console.error("Failed to load cities in user form:", err);
+    });
+  }, []);
+
+  // Fetch existing assigned cities if editing a town manager
+  useEffect(() => {
+    if (initialData?.id && initialData?.role === "town_manager") {
+      (orpc as any).admin.user.getManagerCities({ userId: initialData.id }).then((res: any) => {
+        if (res?.success && Array.isArray(res.cities)) {
+          const ids = res.cities.map((c: any) => c.id);
+          setFormData((prev) => ({
+            ...prev,
+            assignedCityIds: ids,
+            cityName: prev.cityName || (res.cities[0]?.nameEn || ""),
+            region: prev.region || (res.cities[0]?.region || ""),
+          }));
+        }
+      }).catch((err: any) => {
+        console.error("Failed to fetch manager assigned cities:", err);
+      });
+    }
+  }, [initialData?.id, initialData?.role]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -234,65 +270,112 @@ export function UserForm({ onSubmit, initialData }: UserFormProps) {
 
       {formData.role === "town_manager" && (
         <div className="space-y-4 border-t pt-4">
-          <h3 className="text-sm font-semibold">Manager Territory</h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                <MapPin className="h-4 w-4 text-blue-600" />
+                Operational Areas / Assigned Cities (የሚመራቸው ከተሞች)
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                The manager will strictly have authority to set benchmark rates originating from these areas.
+              </p>
+            </div>
+          </div>
+
+          {/* Selected Cities Badges */}
+          <div className="flex flex-wrap gap-1.5 p-2 bg-gray-50 border rounded-md min-h-[42px] items-center">
+            {formData.assignedCityIds && formData.assignedCityIds.length > 0 ? (
+              formData.assignedCityIds.map((cId) => {
+                const cityObj = masterCities.find((c) => c.id === cId);
+                const label = cityObj ? `${cityObj.nameEn} (${cityObj.nameAm})` : cId;
+                return (
+                  <Badge
+                    key={cId}
+                    variant="secondary"
+                    className="flex items-center gap-1 py-1 px-2.5 bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200 text-xs font-medium"
+                  >
+                    <span>{label}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = (formData.assignedCityIds || []).filter((id) => id !== cId);
+                        setFormData({ ...formData, assignedCityIds: updated });
+                      }}
+                      className="hover:text-red-600 focus:outline-none ml-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                );
+              })
+            ) : (
+              <span className="text-xs text-muted-foreground italic px-1">
+                No operational cities assigned yet. Select cities below.
+              </span>
+            )}
+          </div>
+
+          {/* City Selection Dropdown & Quick Search */}
           <FormItem>
-            <FormLabel>Region / State</FormLabel>
+            <FormLabel>Add Verified Operational City</FormLabel>
             <FormControl>
-              <Select
-                value={formData.region}
-                onValueChange={(value) => setFormData({...formData, region: value, cityName: "", townName: ""})}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select region" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ETHIOPIAN_REGIONS.map((r) => (
-                    <SelectItem key={r} value={r}>{r}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Select
+                  value=""
+                  onValueChange={(cityId) => {
+                    if (!cityId) return;
+                    const current = formData.assignedCityIds || [];
+                    if (!current.includes(cityId)) {
+                      const updated = [...current, cityId];
+                      const chosenCity = masterCities.find((c) => c.id === cityId);
+                      setFormData({
+                        ...formData,
+                        assignedCityIds: updated,
+                        cityName: formData.cityName || chosenCity?.nameEn || "",
+                        region: formData.region || chosenCity?.region || "",
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Click to select and assign a city..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {masterCities
+                      .filter((c) => !(formData.assignedCityIds || []).includes(c.id))
+                      .map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nameEn} - {c.nameAm} ({c.region || "Ethiopia"})
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </FormControl>
           </FormItem>
-          {formData.region && (
+
+          <div className="grid grid-cols-2 gap-3 pt-2">
             <FormItem>
-              <FormLabel>City</FormLabel>
+              <FormLabel>Primary Town / Station Name</FormLabel>
               <FormControl>
-                <Select
-                  value={formData.cityName}
-                  onValueChange={(value) => setFormData({...formData, cityName: value, townName: ""})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select city" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CITIES_BY_REGION[formData.region]?.map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  placeholder="e.g. Central Hub / Station"
+                  value={formData.townName || ""}
+                  onChange={(e) => setFormData({ ...formData, townName: e.target.value })}
+                />
               </FormControl>
             </FormItem>
-          )}
-          {formData.cityName && (
             <FormItem>
-              <FormLabel>Town</FormLabel>
+              <FormLabel>Region Headquarters</FormLabel>
               <FormControl>
-                <Select
-                  value={formData.townName}
-                  onValueChange={(value) => setFormData({...formData, townName: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select town" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(TOWNS[formData.cityName] || [formData.cityName]).map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  placeholder="e.g. Oromia / Sidama"
+                  value={formData.region || ""}
+                  onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                />
               </FormControl>
             </FormItem>
-          )}
+          </div>
         </div>
       )}
 

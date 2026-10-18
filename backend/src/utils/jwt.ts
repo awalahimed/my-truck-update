@@ -6,7 +6,7 @@ export interface JWTPayload extends Record<string, unknown> {
   email: string
   name: string
   role: string
-  phoneNumber: string
+  phoneNumber: string | null
   phoneNumberVerified: boolean
   emailVerified?: boolean
   banned?: boolean
@@ -28,7 +28,7 @@ export async function generateAccessToken(user: {
   email: string
   name: string
   role: string
-  phoneNumber: string
+  phoneNumber: string | null
   phoneNumberVerified: boolean
   emailVerified?: boolean
   banned?: boolean
@@ -93,7 +93,7 @@ export async function generateTokenPair(user: {
   email: string
   name: string
   role: string
-  phoneNumber: string
+  phoneNumber: string | null
   phoneNumberVerified: boolean
   banned?: boolean
   accountStatus?: string

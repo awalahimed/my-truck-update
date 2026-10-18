@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { X, Truck, Car, Bike, User, Phone, WifiOff, Clock, Maximize2 } from 'lucide-react-native';
 import { config } from '@/config/config';
 import { formatNumber } from '@/utils/formatters';
-import { spacing, fontSize, fontWeight, colors } from '@/constants/theme';
+import { spacing, fontSize, fontWeight, colors, borderRadius } from '@/constants/theme';
 import { useTheme } from '@/hooks/ThemeContext';
 import { orpc } from '@/hooks/orpc';
 import { useWebSocketContext } from '@/hooks/WebSocketContext';
@@ -155,15 +155,30 @@ const BroadcastWaves = ({ colors: themeColors }: { colors: any }) => {
   });
 
   return (
-    <View style={styles.wavesContainer}>
-      <Animated.View style={[styles.wave, getWaveStyle(wave1)]} />
-      <Animated.View style={[styles.wave, getWaveStyle(wave2)]} />
-      <Animated.View style={[styles.wave, getWaveStyle(wave3)]} />
-      <Animated.View style={[styles.wave, getWaveStyle(wave4)]} />
-      <Animated.View style={[styles.wave, getWaveStyle(wave5)]} />
+    <View style={waveStyles.wavesContainer}>
+      <Animated.View style={[waveStyles.wave, getWaveStyle(wave1)]} />
+      <Animated.View style={[waveStyles.wave, getWaveStyle(wave2)]} />
+      <Animated.View style={[waveStyles.wave, getWaveStyle(wave3)]} />
+      <Animated.View style={[waveStyles.wave, getWaveStyle(wave4)]} />
+      <Animated.View style={[waveStyles.wave, getWaveStyle(wave5)]} />
     </View>
   );
 };
+
+const waveStyles = StyleSheet.create({
+  wavesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 24,
+  },
+  wave: {
+    width: 3,
+    height: 16,
+    borderRadius: 2,
+    backgroundColor: '#3B82F6',
+  },
+});
 
 // ============================================================================
 // MAIN COMPONENT
@@ -502,7 +517,7 @@ export function OrderStatusSheet({ visible, orderId, onClose }: OrderStatusSheet
         <View style={styles.metaItem}>
           <Truck size={12} color={colors.textSecondary} />
           <Text style={styles.metaText}>
-            {order?.vehicleType.charAt(0).toUpperCase() + order?.vehicleType.slice(1)}
+            {order?.vehicleType ? (order.vehicleType.charAt(0).toUpperCase() + order.vehicleType.slice(1)) : 'Standard Truck'}
           </Text>
         </View>
         {Array.isArray(order?.materials) && order.materials.length > 0 && (
@@ -623,7 +638,7 @@ export function OrderStatusSheet({ visible, orderId, onClose }: OrderStatusSheet
                   <Text style={styles.priceAmount}>{formatNumber(offerPrice)}</Text>
                   <Text style={styles.priceCurrency}>ETB</Text>
                 </View>
-                <Text style={styles.cashPaymentNote}>Pay driver in cash</Text>
+                <Text style={[styles.cashPaymentNote, { color: colors.success }]}>🛡️ 100% Escrow Protected</Text>
               </View>
               
               <View style={styles.offerActions}>
@@ -646,7 +661,7 @@ export function OrderStatusSheet({ visible, orderId, onClose }: OrderStatusSheet
                     onPress={() => {
                       Alert.alert(
                         'Insufficient Balance',
-                        `You need ${formatNumber(platformFee)} ETB platform fee but have ${formatNumber(walletBalance || 0)} ETB available. Please top up your wallet.`,
+                        `You need ${formatNumber(offerPrice)} ETB in your wallet to lock this order in escrow, but have ${formatNumber(walletBalance || 0)} ETB available. Please top up your wallet.`,
                         [
                           { text: 'Cancel', style: 'cancel' },
                           {
@@ -668,7 +683,7 @@ export function OrderStatusSheet({ visible, orderId, onClose }: OrderStatusSheet
                     onPress={() => handleAcceptOffer(offer.id)}
                   >
                     <Text style={styles.acceptBtnText}>
-                      Accept ({formatNumber(platformFee)} ETB Fee)
+                      Accept & Lock Escrow
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -1413,5 +1428,139 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: fontWeight.bold,
     color: colors.error,
     letterSpacing: 0.3,
+  },
+  imageTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  imageType: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+  },
+  imageDescription: {
+    fontSize: fontSize.xs,
+  },
+  noImage: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl * 2,
+  },
+  noImageText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+  },
+  modalFooter: {
+    padding: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  modalInfo: {
+    gap: 4,
+  },
+  modalDriverName: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    color: colors.text,
+  },
+  modalVehicleInfo: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.text,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  fullscreenBtn: {
+    padding: spacing.xs,
+  },
+  modalClose: {
+    padding: spacing.xs,
+  },
+  modalScrollContainer: {
+    flex: 1,
+    maxHeight: 400,
+  },
+  imageItem: {
+    marginBottom: spacing.md,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+  },
+  vehicleImage: {
+    width: '100%',
+    height: 200,
+    backgroundColor: colors.surface,
+  },
+  imageInfo: {
+    padding: spacing.sm,
+    backgroundColor: colors.surface,
+  },
+  fullscreenContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenClose: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 8,
+  },
+  fullscreenImageContainer: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenImage: {
+    width: '100%',
+    height: '80%',
+  },
+  imageCounter: {
+    position: 'absolute',
+    bottom: 40,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  imageCounterText: {
+    color: '#fff',
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContent: {
+    width: '100%',
+    maxHeight: '80%',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
   },
 });

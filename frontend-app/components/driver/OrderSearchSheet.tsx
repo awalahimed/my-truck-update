@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView, ActivityIndicator, Modal, Image } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView, ActivityIndicator, Modal, Image, Alert } from 'react-native'
 import { useWebSocketContext } from '../../hooks/WebSocketContext'
 import { Truck, Package, DollarSign, X, Navigation, Clock, Car, Bike, ArrowRight } from 'lucide-react-native'
 import { colors, spacing, fontSize, fontWeight } from '@/constants/theme'
@@ -10,6 +10,7 @@ import * as Location from 'expo-location'
 import { getAvatarSize, getCardPadding, getMapHeight } from '@/utils/responsive'
 import { useAuth } from '@/hooks/AuthContext'
 import { accountStatus } from '@/constants/userRoles'
+import { orpc } from '@/hooks/orpc'
 
 interface OrderSearchSheetProps {
   visible: boolean
@@ -307,8 +308,8 @@ export const OrderSearchSheet: React.FC<OrderSearchSheetProps> = ({ visible, onC
   }
 
   const handleSubmitOffer = async () => {
-    if (!orpcClient || !selectedOrder) {
-      console.log('Cannot submit: missing orpcClient or selectedOrder')
+    if (!selectedOrder) {
+      console.log('Cannot submit: missing selectedOrder')
       return
     }
 
@@ -329,18 +330,51 @@ export const OrderSearchSheet: React.FC<OrderSearchSheetProps> = ({ visible, onC
 
     try {
       setSubmitting(true)
-      await orpcClient.driver.createOffer({
-        orderId: selectedOrder.id,
-        offeredPrice: price,
-      })
+
+      let submitted = false
+      if (orpcClient && connected) {
+        try {
+          await orpcClient.driver.createOffer({
+            orderId: selectedOrder.id,
+            offeredPrice: price,
+          })
+          submitted = true
+        } catch (wsErr: any) {
+          console.warn('WS createOffer failed, trying HTTP fallback:', wsErr)
+        }
+      }
+
+      if (!submitted) {
+        await orpc.order.createOffer({
+          orderId: selectedOrder.id,
+          offeredPrice: price,
+        })
+      }
       
+      Alert.alert('Success', 'Your bid has been submitted successfully!')
       handleCancel()
       
       // Show loading state while refreshing
       setLoading(true)
       
-      const result = await orpcClient.driver.getAvailableOrders()
-      const allOrders = result.orders || []
+      let allOrders: any[] = []
+      if (orpcClient && connected) {
+        try {
+          const result = await orpcClient.driver.getAvailableOrders()
+          allOrders = result.orders || []
+        } catch (e) {
+          console.warn('Failed to refresh orders via WS, falling back to HTTP:', e)
+        }
+      }
+
+      if (allOrders.length === 0) {
+        try {
+          const res = await orpc.order.getPendingOrders()
+          allOrders = res.orders || []
+        } catch (e) {
+          console.error('Failed to refresh orders via HTTP:', e)
+        }
+      }
       
       // Parse materials if they come as JSON strings
       const parsedOrders = allOrders.map((order: any) => {
@@ -368,6 +402,9 @@ export const OrderSearchSheet: React.FC<OrderSearchSheetProps> = ({ visible, onC
       setOrders(visibleOrders)
     } catch (error: any) {
       console.error('Failed to submit offer:', error)
+      const message = error?.message || 'Failed to submit offer. Please try again.'
+      setPriceError(message)
+      Alert.alert('Bid Submission Failed', message)
     } finally {
       setSubmitting(false)
       setLoading(false)

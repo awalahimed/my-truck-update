@@ -23,11 +23,11 @@ interface UseAuthReturn {
 
   // Auth operations
   login: (phoneNumber: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; message: string }>;
-  verifyLoginOTP: (phoneNumber: string, code: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
+  verifyLoginOTP: (phoneNumber: string, code: string, rememberMe?: boolean) => Promise<{ success: boolean; user?: AuthUser; error?: string }>;
   resendLoginOTP: (phoneNumber: string) => Promise<{ success: boolean; message: string }>;
   register: (phoneNumber: string, password: string) => Promise<{ success: boolean; message: string }>;
-  verifyRegistrationOTP: (phoneNumber: string, code: string) => Promise<{ success: boolean; error?: string }>;
-  verifyRegisterOTP: (phoneNumber: string, code: string) => Promise<{ success: boolean; error?: string }>;
+  verifyRegistrationOTP: (phoneNumber: string, code: string) => Promise<{ success: boolean; user?: AuthUser; error?: string }>;
+  verifyRegisterOTP: (phoneNumber: string, code: string) => Promise<{ success: boolean; user?: AuthUser; error?: string }>;
   sendRegisterOTP: (phoneNumber: string) => Promise<{ success: boolean; message: string }>;
   sendLoginOTP: (phoneNumber: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
@@ -154,7 +154,9 @@ export function useAuth(): UseAuthReturn {
   }, [context]);
 
   const signOut = context.logout;
-  const clearSession = context.setSession;
+  const clearSession = async () => {
+    context.setSession(null);
+  };
 
   return {
     ...context,

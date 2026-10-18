@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StatusBar,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -18,10 +19,12 @@ import {
   Checkbox,
   OTPVerification,
 } from '@/components/ui';
+import { ServerConfigModal } from '@/components/ServerConfigModal';
 import { colors, spacing, fontSize, fontWeight } from '@/constants/theme';
 import { userRoles } from '@/constants/userRoles';
 import { useAuth } from '@/hooks/useAuth';
 import { showToast } from '@/hooks/useToast';
+import { getActiveServerUrl, subscribeServerUrlChange } from '@/config/config';
 
 export default function LoginScreen() {
   const [phone, setPhone] = useState('');
@@ -30,6 +33,12 @@ export default function LoginScreen() {
   const [passwordError, setPasswordError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [step, setStep] = useState<'form' | 'otp' | 'authenticating'>('form');
+  const [serverModalVisible, setServerModalVisible] = useState(false);
+  const [currentServerUrl, setCurrentServerUrl] = useState(getActiveServerUrl());
+
+  useEffect(() => {
+    return subscribeServerUrlChange((url) => setCurrentServerUrl(url));
+  }, []);
 
   const {
     isLoading,
@@ -101,7 +110,19 @@ export default function LoginScreen() {
     // Step 1: Sign in with phone + password (sends OTP) and pass rememberMe setting
     const signInResult = await login(phone, password, rememberMe);
     if (!signInResult.success) {
-      showToast({ type: 'error', message: signInResult.message });
+      const msg = signInResult.message || '';
+      const isNetwork =
+        msg.toLowerCase().includes('network') ||
+        msg.toLowerCase().includes('fetch') ||
+        msg.toLowerCase().includes('timeout');
+      if (isNetwork) {
+        showToast({
+          type: 'error',
+          message: `Cannot reach server at ${getActiveServerUrl()}. Tap "Server" to switch.`,
+        });
+      } else {
+        showToast({ type: 'error', message: msg });
+      }
       return;
     }
 
@@ -125,8 +146,13 @@ export default function LoginScreen() {
   }, []);
 
   const handleOTPSuccess = useCallback(async (userRole: string) => {
-    // Navigate to index which will show splash screen and handle redirect
-    router.replace('/');
+    if (userRole === userRoles.DRIVER) {
+      router.replace('/(tabs)/driver/home');
+    } else if (userRole === userRoles.OWNER_SHOP) {
+      router.replace('/(tabs)/user/home');
+    } else {
+      router.replace('/');
+    }
   }, []);
 
   return (
@@ -138,16 +164,26 @@ export default function LoginScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header - Only show back button if we can go back */}
+        {/* Header - Back button and Server Switcher */}
         <View style={styles.header}>
-          {router.canGoBack() && (
+          {router.canGoBack() ? (
             <TouchableOpacity
               style={styles.backButton}
               onPress={() => router.back()}
             >
               <Ionicons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
+          ) : (
+            <View />
           )}
+
+          <TouchableOpacity
+            style={styles.serverSettingsBtn}
+            onPress={() => setServerModalVisible(true)}
+          >
+            <Ionicons name="server-outline" size={16} color={colors.primary} />
+            <Text style={styles.serverSettingsBtnText}>Server</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Title */}
@@ -238,10 +274,27 @@ export default function LoginScreen() {
                   <Text style={styles.signUpLink}> Sign up</Text>
                 </TouchableOpacity>
               </View>
+
+              {/* Server Config Status Chip */}
+              <TouchableOpacity
+                style={styles.serverStatusChip}
+                onPress={() => setServerModalVisible(true)}
+              >
+                <View style={styles.serverStatusDot} />
+                <Text style={styles.serverStatusText} numberOfLines={1}>
+                  Server: {currentServerUrl}
+                </Text>
+                <Ionicons name="settings-outline" size={13} color={colors.textSecondary} />
+              </TouchableOpacity>
             </>
           )}
         </View>
       </ScrollView>
+
+      <ServerConfigModal
+        visible={serverModalVisible}
+        onClose={() => setServerModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -261,6 +314,52 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: spacing.md,
     paddingBottom: spacing.lg,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  serverSettingsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    backgroundColor: '#eff6ff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  serverSettingsBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  serverStatusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: spacing.xl,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    alignSelf: 'center',
+    maxWidth: '95%',
+  },
+  serverStatusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#22c55e',
+  },
+  serverStatusText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    maxWidth: 240,
   },
   backButton: {
     width: 40,

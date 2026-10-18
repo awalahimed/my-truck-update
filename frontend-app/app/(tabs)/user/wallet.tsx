@@ -137,7 +137,7 @@ export default function Wallet() {
     const pending = transactions
       .filter(tx => tx.status.toLowerCase() === 'pending' && tx.type === 'topup')
       .map(tx => tx.txRef)
-      .filter(Boolean);
+      .filter((ref): ref is string => Boolean(ref));
 
     if (pending.length > 0) {
       console.log('[Wallet] Found pending transactions:', pending);
@@ -253,7 +253,10 @@ export default function Wallet() {
         />
         
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/(tabs)/user/home')}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.replace('/(tabs)/user/home')}
+          >
             <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={[styles.title, { color: colors.text }]}>Wallet</Text>
@@ -306,7 +309,10 @@ export default function Wallet() {
       />
 
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/(tabs)/user/home')}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.replace('/(tabs)/user/home')}
+        >
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.text }]}>Wallet</Text>
@@ -348,6 +354,7 @@ export default function Wallet() {
       >
         <WalletBalance
           balance={wallet.balance}
+          reservedBalance={wallet.reservedBalance}
           totalTopup={wallet.totalTopup}
           showTopup
           onTopup={handleOpenTopUp}

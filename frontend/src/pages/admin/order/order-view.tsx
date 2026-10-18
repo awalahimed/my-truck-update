@@ -25,9 +25,18 @@ import {
   IconCoin,
   IconSearch,
   IconEye,
+  IconFileCheck,
+  IconShieldCheck,
+  IconAlertTriangle,
+  IconCheck,
+  IconX,
+  IconExternalLink,
 } from "@tabler/icons-react";
 import { formatRelativeTime } from "@/lib/time-utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { URL } from "@/config";
 
 interface OrderStats {
   totalToday: number;
@@ -53,6 +62,18 @@ interface Order {
   status: string;
   estimatedPrice: string | null;
   finalPrice: string | null;
+  deliveryPin?: string | null;
+  consigneeName?: string | null;
+  consigneePhone?: string | null;
+  podWaybillPhoto?: string | null;
+  podCargoPhoto?: string | null;
+  podCompletedBy?: string | null;
+  podLatitude?: string | null;
+  podLongitude?: string | null;
+  podDisputeReason?: string | null;
+  podDisputedAt?: string | null;
+  deliveredAt?: string | null;
+  completedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -68,6 +89,7 @@ interface GetAllOrdersResponse {
 
 const STATUS_OPTIONS = [
   { value: "all", label: "All Statuses" },
+  { value: "pod_pending_review", label: "📄 PoD Pending Review (ደረሰኝ ማረጋገጫ)" },
   { value: "pending_approval", label: "Pending Approval" },
   { value: "agent_selected", label: "Agent Selected" },
   { value: "approved_by_agent", label: "Approved by Agent" },
@@ -102,6 +124,60 @@ export function ShipmentOrdersView() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
+  const [approvingPoD, setApprovingPoD] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [fullPhotoUrl, setFullPhotoUrl] = useState<string | null>(null);
+
+  const getMediaUrl = (photoId?: string | null) => {
+    if (!photoId) return null;
+    if (photoId.startsWith("http") || photoId.startsWith("data:")) return photoId;
+    return `${URL.BASE}/uploads/${photoId}`;
+  };
+
+  const handleApprovePoD = async (orderId: string) => {
+    try {
+      setApprovingPoD(true);
+      const res = await orpc.order.managerApprovePoD({
+        orderId,
+        approved: true,
+      });
+      if (res.success) {
+        toast.success(`Proof of Delivery approved! ${res.driverPayout ? `${res.driverPayout.toLocaleString()} ETB credited to driver.` : ''}`);
+        setIsViewOpen(false);
+        fetchOrders();
+      } else {
+        toast.error(res.message || "Failed to approve delivery");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to approve delivery");
+    } finally {
+      setApprovingPoD(false);
+    }
+  };
+
+  const handleRejectPoD = async () => {
+    if (!selectedOrder) return;
+    try {
+      setApprovingPoD(true);
+      const res = await orpc.order.managerApprovePoD({
+        orderId: selectedOrder.id,
+        approved: false,
+        rejectionReason: rejectReason || "Waybill photo not clear or missing stamp.",
+      });
+      if (res.success) {
+        toast.warning("Delivery receipt rejected. Driver notified to re-upload clear proof.");
+        setRejectDialogOpen(false);
+        setRejectReason("");
+        setIsViewOpen(false);
+        fetchOrders();
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to reject delivery receipt");
+    } finally {
+      setApprovingPoD(false);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -442,12 +518,175 @@ export function ShipmentOrdersView() {
                 <div className="space-y-1 text-sm">
                   <p><span className="text-muted-foreground">Created:</span> {new Date(selectedOrder.createdAt).toLocaleString()}</p>
                   <p><span className="text-muted-foreground">Updated:</span> {new Date(selectedOrder.updatedAt).toLocaleString()}</p>
+                  {selectedOrder.deliveredAt && (
+                    <p><span className="text-muted-foreground">Delivered:</span> {new Date(selectedOrder.deliveredAt).toLocaleString()}</p>
+                  )}
+                  {selectedOrder.completedAt && (
+                    <p><span className="text-muted-foreground">Completed:</span> {new Date(selectedOrder.completedAt).toLocaleString()}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Proof of Delivery (PoD) & Escrow Settlement */}
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium flex items-center gap-1.5 text-base">
+                    <IconShieldCheck className="h-4 w-4 text-primary" />
+                    Proof of Delivery (ማረጋገጫ)
+                  </h4>
+                  {selectedOrder.podCompletedBy && (
+                    <Badge variant="outline" className="text-xs capitalize">
+                      {selectedOrder.podCompletedBy.replace(/_/g, " ")}
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="space-y-3 text-sm bg-muted/40 p-3 rounded-lg border">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <p className="text-muted-foreground">Consignee Name</p>
+                      <p className="font-medium">{selectedOrder.consigneeName || "Same as Customer"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Consignee Phone</p>
+                      <p className="font-medium">{selectedOrder.consigneePhone || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Delivery PIN</p>
+                      <p className="font-mono font-semibold">{selectedOrder.deliveryPin || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">GPS Coordinates</p>
+                      <p className="font-mono">
+                        {selectedOrder.podLatitude && selectedOrder.podLongitude
+                          ? `${Number(selectedOrder.podLatitude).toFixed(4)}, ${Number(selectedOrder.podLongitude).toFixed(4)}`
+                          : "Not recorded"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Uploaded Waybill / Stamped Paper Receipt Photo */}
+                  {selectedOrder.podWaybillPhoto ? (
+                    <div className="pt-2 border-t">
+                      <p className="text-xs font-semibold mb-1 flex items-center gap-1">
+                        <IconFileCheck className="h-3.5 w-3.5 text-emerald-600" />
+                        Signed Paper Waybill Photo (የተፈረመ ደረሰኝ):
+                      </p>
+                      <div className="relative group rounded-md overflow-hidden border bg-black/5 aspect-[4/3] max-w-[240px]">
+                        <img
+                          src={getMediaUrl(selectedOrder.podWaybillPhoto) || ""}
+                          alt="Signed waybill receipt"
+                          className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => setFullPhotoUrl(getMediaUrl(selectedOrder.podWaybillPhoto))}
+                        />
+                        <button
+                          type="button"
+                          className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded flex items-center gap-1"
+                          onClick={() => setFullPhotoUrl(getMediaUrl(selectedOrder.podWaybillPhoto))}
+                        >
+                          <IconExternalLink className="h-3 w-3" /> Zoom
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="pt-2 border-t text-xs text-muted-foreground">
+                      No paper waybill photo uploaded (verified via digital PIN or remote confirmation).
+                    </div>
+                  )}
+
+                  {/* Pending Manager / Staff Review Banner & Actions */}
+                  {selectedOrder.status === "delivered" && (
+                    <div className="pt-3 border-t space-y-2">
+                      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-2.5 rounded text-xs text-amber-900 dark:text-amber-200">
+                        <p className="font-semibold flex items-center gap-1">
+                          <IconAlertTriangle className="h-4 w-4 text-amber-600" />
+                          Awaiting Review (Option A)
+                        </p>
+                        <p className="mt-0.5 text-amber-700 dark:text-amber-300">
+                          Inspect the signed paper receipt above. Approving will immediately release the shipper's escrow funds and credit the driver's wallet.
+                        </p>
+                      </div>
+
+                      <div className="flex gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                          disabled={approvingPoD}
+                          onClick={() => handleApprovePoD(selectedOrder.id)}
+                        >
+                          <IconCheck className="h-4 w-4 mr-1.5" />
+                          Approve & Release Funds
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={approvingPoD}
+                          onClick={() => setRejectDialogOpen(true)}
+                        >
+                          <IconX className="h-4 w-4 mr-1" />
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedOrder.podDisputeReason && (
+                    <div className="bg-red-50 border border-red-200 text-red-800 p-2 rounded text-xs">
+                      <span className="font-semibold">Rejection / Dispute Reason:</span> {selectedOrder.podDisputeReason}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Reject PoD Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Delivery Receipt</DialogTitle>
+            <DialogDescription>
+              Provide a clear reason why the paper receipt is rejected. The driver will be notified to re-upload a clear photo or ask the receiver for the PIN.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Textarea
+              placeholder="e.g. Receipt photo is blurry, missing signature or warehouse stamp..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" disabled={approvingPoD} onClick={handleRejectPoD}>
+              Confirm Rejection
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Full Size Photo Dialog */}
+      <Dialog open={!!fullPhotoUrl} onOpenChange={() => setFullPhotoUrl(null)}>
+        <DialogContent className="max-w-3xl p-2">
+          <DialogHeader className="p-2">
+            <DialogTitle>Signed Paper Waybill Receipt (ተቀባይ ደረሰኝ)</DialogTitle>
+          </DialogHeader>
+          {fullPhotoUrl && (
+            <div className="max-h-[75vh] overflow-auto flex items-center justify-center p-2 bg-black/5 rounded">
+              <img
+                src={fullPhotoUrl}
+                alt="Full size signed waybill"
+                className="max-w-full max-h-[70vh] object-contain rounded"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

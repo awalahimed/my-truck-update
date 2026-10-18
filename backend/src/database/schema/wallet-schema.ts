@@ -46,6 +46,7 @@ export const walletTransaction = mysqlTable("wallet_transaction", {
     .notNull(),
 });
 
+export const wallets = wallet;
 export type Wallet = typeof wallet.$inferSelect;
 export type NewWallet = typeof wallet.$inferInsert;
 export type WalletTransaction = typeof walletTransaction.$inferSelect;

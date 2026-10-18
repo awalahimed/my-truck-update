@@ -147,6 +147,16 @@ export const payment = os.router({
                 updatedAt: new Date(),
               })
               .where(eq(wallet.userId, context.user.id));
+          } else {
+            console.log('[Payment] 💰 Creating new wallet for user with top-up amount');
+            await db.insert(wallet).values({
+              id: crypto.randomUUID(),
+              userId: context.user.id,
+              balance: parseFloat(existingTransaction.amount).toFixed(2),
+              reservedBalance: '0.00',
+              totalTopup: parseFloat(existingTransaction.amount).toFixed(2),
+              totalWithdrawn: '0.00',
+            });
           }
 
           console.log('[Payment] ✅ Verification complete - SUCCESS');

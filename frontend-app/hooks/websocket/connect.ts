@@ -103,6 +103,7 @@ export const useWebSocket = () => {
   const [assignedOrder, setAssignedOrder] = useState<OrderAssigned['data'] | null>(null)
   // *** NEW: State for order updates (status changes, driver location, etc.)
   const [orderUpdate, setOrderUpdate] = useState<OrderUpdate | null>(null)
+  const [liveTripLocation, setLiveTripLocation] = useState<any | null>(null)
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reconnectAttemptsRef = useRef(0)
   const orpcClientRef = useRef<any>(null)
@@ -284,6 +285,12 @@ export const useWebSocket = () => {
             })
           }
           
+          // *** NEW: Handle live trip location broadcast
+          if (message.type === 'trip:location:broadcast') {
+            console.log('📍 Live trip location broadcast:', message.data)
+            setLiveTripLocation(message.data)
+          }
+
           // *** NEW: Handle order update push notifications (status, driver location, etc.)
           if (message.type === 'order_update') {
             console.log('🔔 Order update via WebSocket:', message)
@@ -403,6 +410,9 @@ export const useWebSocket = () => {
     // *** NEW: Expose order update state
     orderUpdate,
     setOrderUpdate,
+    // *** NEW: Expose live trip location broadcast state
+    liveTripLocation,
+    setLiveTripLocation,
     connect,
     disconnect,
     forceReconnect,

@@ -15,6 +15,7 @@ import * as driverDocumentSchema from '../database/schema/driver-document-schema
 import * as driverOfferSchema from '../database/schema/driver-offer-schema.js'
 import * as commissionSchema from '../database/schema/commission-schema.js'
 import * as referralSchema from '../database/schema/referral-schema.js'
+import * as masterDataSchema from '../database/schema/master-data-schema.js'
 
 export const schema = {
   ...authSchema,
@@ -31,6 +32,7 @@ export const schema = {
   ...driverOfferSchema,
   ...commissionSchema,
   ...referralSchema,
+  ...masterDataSchema,
 }
 
 export const pool = mysql.createPool({

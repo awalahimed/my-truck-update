@@ -9,10 +9,14 @@ import { adminUserController } from './admin/user.js';
 import { adminOrderController } from './admin/order.js';
 import { adminGiveawayController } from './admin/giveaway.js';
 import { adminTownManagerController } from './admin/town-manager.js';
+import { adminMasterDataRouter } from './admin-master-data.js';
 
 console.log('[Admin Controller] Loading admin controller...')
 
 export const adminController = os.router({
+  // Master Data & Configuration Management
+  masterData: adminMasterDataRouter,
+
   // Dashboard statistics
   dashboard: adminDashboardController,
   

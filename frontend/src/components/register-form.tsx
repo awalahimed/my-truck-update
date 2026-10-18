@@ -25,6 +25,8 @@ import {
   Eye,
   EyeOff,
   Clock,
+  Loader2,
+  Upload,
 } from "lucide-react"
 import { FileDropZone } from "./file-drop-zone"
 

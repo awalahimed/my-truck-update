@@ -44,7 +44,6 @@ export function SplashScreenLottie({ mode = 'splash', onAnimationComplete }: Spl
         <Text style={styles.loadingText}>Loading...</Text>
       )}
     </View>
-    s
   );
 }
 

@@ -44,7 +44,7 @@ app-example
 
 # generated native folders (commented out since we now use bare workflow)
 # /ios
-# /android
+/android
 # .expo/
 
 # Android specific (for bare workflow)
@@ -128,3 +128,6 @@ build/
 gradle-app.setting
 !gradle-wrapper.jar
 !gradle-wrapper.properties
+
+/android
+/android

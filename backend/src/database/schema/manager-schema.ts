@@ -7,8 +7,10 @@ import {
   boolean,
   text,
   json,
+  uniqueIndex,
 } from "drizzle-orm/mysql-core";
 import { user } from "./auth-schema.js";
+import { cities } from "./master-data-schema.js";
 
 /**
  * Town/City Manager - manages agents and operations in assigned region
@@ -121,3 +123,23 @@ export const managerFraudAlert = mysqlTable("manager_fraud_alert", {
     .$onUpdate(() => new Date())
     .notNull(),
 });
+
+/**
+ * Manager Assigned Cities - links managers to their authorized operational cities
+ */
+export const managerAssignedCities = mysqlTable(
+  "manager_assigned_cities",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    managerId: varchar("manager_id", { length: 36 })
+      .notNull()
+      .references(() => townManager.id, { onDelete: "cascade" }),
+    cityId: varchar("city_id", { length: 36 })
+      .notNull()
+      .references(() => cities.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),
+  },
+  (table) => ({
+    managerCityIdx: uniqueIndex("manager_city_idx").on(table.managerId, table.cityId),
+  })
+);

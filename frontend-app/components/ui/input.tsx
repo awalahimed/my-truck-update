@@ -15,6 +15,7 @@ interface CustomInputProps extends TextInputProps {
   error?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   onIconPress?: () => void;
+  rightIcon?: React.ReactNode;
 }
 
 export function Input({
@@ -22,6 +23,7 @@ export function Input({
   error,
   icon,
   onIconPress,
+  rightIcon,
   style,
   secureTextEntry,
   ...props
@@ -49,7 +51,9 @@ export function Input({
           secureTextEntry={secureTextEntry && !isPasswordVisible}
           {...props}
         />
-        {isPassword ? (
+        {rightIcon ? (
+          <View style={styles.iconContainer}>{rightIcon}</View>
+        ) : isPassword ? (
           <TouchableOpacity
             onPress={() => setIsPasswordVisible(!isPasswordVisible)}
             style={styles.iconContainer}

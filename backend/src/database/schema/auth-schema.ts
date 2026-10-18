@@ -6,6 +6,7 @@ import {
   boolean,
   int,
   decimal,
+  AnyMySqlColumn,
 } from "drizzle-orm/mysql-core";
 
 // User role definitions
@@ -71,7 +72,7 @@ export const user = mysqlTable("user", {
   referralCode: varchar("referral_code", { length: 10 }).unique(),
   referredBy: varchar("referred_by", { length: 36 }), // ID of user who referred them
   registeredByAgentId: varchar("registered_by_agent_id", { length: 36 }).references(
-    () => user.id,
+    (): AnyMySqlColumn => user.id,
     { onDelete: "set null" }
   ),
   referralRewardClaimed: boolean("referral_reward_claimed").default(false),

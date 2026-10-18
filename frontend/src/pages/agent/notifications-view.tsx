@@ -26,7 +26,7 @@ export function NotificationsView() {
     try {
       const res = await orpc.notifications.getUserNotifications({ limit: 50 });
       if (res.success && res.notifications) {
-        setNotifications(res.notifications as NotificationItem[]);
+        setNotifications(res.notifications as unknown as NotificationItem[]);
       } else {
         toast.error("Failed to load notifications.");
       }
