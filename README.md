@@ -1,50 +1,193 @@
 # My Truck Update
 
-A truck operations and maintenance tracking platform built to help owners and fleet managers stay on top of vehicle updates, service records, and operational status.
+## Technical Architecture Document
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-4.x-blue.svg)](https://www.typescriptlang.org/)
-[![Status](https://img.shields.io/badge/Status-Active%20Development-orange.svg)]()
+## 1. Overview
 
-## Overview
+My Truck Update is a truck operations and maintenance tracking application designed to help individual truck owners and fleet managers record vehicle status, service events, and operational updates in a centralized system. The platform is currently structured as a TypeScript-based application with a lightweight front-end layer and a clear path toward backend services, persistence, and scalability.
 
-My Truck Update is designed to simplify truck management by centralizing updates, maintenance activity, and status tracking in one place. Whether you are an individual truck owner or managing a small fleet, the goal is to provide a simple, reliable way to keep operational information organized and up to date.
+The system architecture is intentionally modular so that it can evolve from a simple dashboard-style web app into a production-ready fleet management platform with authentication, data persistence, analytics, and deployment automation.
 
-This project combines a modern TypeScript-based application architecture with a lightweight and responsive front-end experience. It is structured to scale from a personal dashboard into a broader fleet management tool over time.
+## 2. Goals and Non-Goals
 
-## Why This Project Exists
+### Goals
+- Track truck information and service history
+- Provide a simple dashboard of current vehicle status
+- Support operational updates and maintenance logging
+- Maintain a clean and maintainable TypeScript codebase
+- Provide a scalable foundation for future backend services
+- Support future multi-user and fleet-level access patterns
 
-Truck owners and fleet operators often manage critical information across disconnected tools: spreadsheets, paper logs, texts, and manual reminders. My Truck Update brings those workflows together into a single interface that helps users:
+### Non-Goals
+- Full enterprise ERP integration in v1
+- Real-time dispatch or GPS tracking at launch
+- Advanced AI-based analytics without a backend foundation
+- Multi-region, high-scale fleet systems in the initial release
 
-- track truck details and current status
-- maintain service and maintenance history
-- monitor vehicle-related updates in one place
-- reduce missed inspections or maintenance deadlines
-- build a clear operational overview for each truck
+## 3. Architectural Principles
 
-## Product Vision
+- Separation of concerns between UI, business logic, and data access
+- Type safety through TypeScript
+- Modular component organization for maintainability
+- Extensibility for future backend and database integration
+- Secure handling of environment-specific configuration
+- Simplicity first, with a path to scale
 
-Create a practical, trustworthy, and easy-to-use system for managing truck operations with clarity and efficiency. The platform is intended to progress from a lightweight management dashboard into a full fleet operations suite.
+## 4. System Context
 
-## Key Features
+The application sits between users and truck operational data. Users interact with the system to create truck records, update statuses, and maintain service-related information. The app can be deployed as a front-end-only experience initially and expanded into a full-stack solution later.
 
-- Truck profile creation and management
-- Vehicle status updates
-- Maintenance and service tracking
-- Update log and timeline history
-- Dashboard overview for operational visibility
-- Responsive web interface
-- Easy extension for future reporting and analytics
-- Support for future authentication and multi-user access
+Actors:
+- Truck owner
+- Fleet manager
+- Operations staff
+- System administrator
 
-## Use Cases
+Primary use cases:
+- Create a truck profile
+- Update vehicle status
+- Log maintenance history
+- Browse operational dashboard
+- Review recent updates and service records
 
-- Individual truck owner tracking maintenance history
-- Small fleet operations monitoring vehicle availability
-- Service scheduling and reminder management
-- Centralized record keeping for operational updates
+## 5. High-Level Architecture
 
-## Tech Stack
+At a high level, the architecture follows a layered model:
+
+1. Presentation Layer
+   - User interface components
+   - Rendered pages and dashboard views
+   - HTML, CSS, and TypeScript front-end assets
+
+2. Application Layer
+   - TypeScript modules for business flows
+   - Validation logic
+   - Service orchestration and state handling
+
+3. Data Layer
+   - Local storage or mock persistence (initially)
+   - Future API and database integration
+
+4. Integration Layer
+   - External services, API endpoints, or third-party tools
+   - Authentication providers in future versions
+
+5. Deployment Layer
+   - Development environment
+   - Production build
+   - Hosting and observability platform
+
+## 6. Proposed Runtime Architecture
+
+### Current State
+The project is currently best described as a front-end TypeScript application. It likely renders pages and manages UI state in the browser, with app logic expressed as modular TypeScript functions and components.
+
+### Target State
+The target architecture is a web application with a clear separation of responsibilities:
+
+- Frontend client
+  - dashboard UI
+  - truck management screens
+  - service log and maintenance views
+
+- API service layer
+  - RESTful or GraphQL endpoints
+  - validation and business rules
+  - authentication middleware
+
+- Data persistence layer
+  - relational or document database
+  - query layer for vehicle records and maintenance logs
+
+- External services
+  - email or notification system
+  - analytics or reporting integrations
+  - cloud hosting and CI/CD pipeline
+
+## 7. Component Breakdown
+
+### 7.1 UI Layer
+Responsible for rendering interactive screens and accepting user actions.
+
+Examples of likely UI modules:
+- Dashboard screen
+- Truck list view
+- Truck detail screen
+- Maintenance log screen
+- Status update form
+- Settings panel
+
+Responsibilities:
+- present data to users
+- capture user input
+- trigger application logic
+- display success/error states
+
+### 7.2 Application Layer
+Responsible for logic that transforms user actions into domain operations.
+
+Typical responsibilities:
+- create/update/delete truck records
+- schedule maintenance tasks
+- validate fields and business rules
+- aggregate status information for dashboard
+- format records for display
+
+### 7.3 Domain Model
+Core entities expected in the system:
+
+#### Truck
+- id
+- make
+- model
+- year
+- vin
+- status
+- lastUpdated
+- notes
+
+#### MaintenanceRecord
+- id
+- truckId
+- title
+- description
+- date
+- type
+- status
+- createdAt
+
+#### User
+- id
+- name
+- email
+- role
+- createdAt
+
+#### Fleet (future)
+- id
+- name
+- memberIds
+- vehicleIds
+
+## 8. Data Flow
+
+### User Flow: Create Truck
+1. User opens the truck form.
+2. User enters truck details.
+3. UI validates input.
+4. Application layer creates a truck record payload.
+5. Data layer stores record.
+6. UI refreshes list and dashboard data.
+
+### User Flow: Log Maintenance
+1. User selects a truck.
+2. User enters maintenance details.
+3. App validates schedule and status values.
+4. Service layer stores maintenance record.
+5. Dashboard updates with the new maintenance event.
+6. User sees the record in the history timeline.
+
+## 9. Technical Stack
 
 ### Frontend
 - TypeScript
@@ -52,29 +195,27 @@ Create a practical, trustworthy, and easy-to-use system for managing truck opera
 - CSS
 - JavaScript
 
-### Tooling
+### Build and Tooling
 - Node.js
 - npm or yarn
 - TypeScript compiler
+- Vite or equivalent bundler (likely, depending on implementation)
 
-### Planned / Future Stack Enhancements
-- REST API or GraphQL backend
-- Database persistence (PostgreSQL, MySQL, or MongoDB)
-- Authentication and authorization
-- Cloud deployment
-- Automated testing and CI/CD
+### Backend (planned)
+- Node.js with TypeScript server
+- REST API or GraphQL layer
+- JWT or session-based auth
 
-## Architecture
+### Database (planned)
+- PostgreSQL for relational data and auditing
+- Optionally Redis for caching and queues
 
-The project is currently structured as a TypeScript-driven application with front-end interfaces and modular logic. As it evolves, the expected architecture will likely include:
+### Deployment (planned)
+- CI/CD pipelines
+- cloud hosting
+- environment configuration via .env and secrets manager
 
-- Client application for dashboard and truck records
-- Shared business logic modules
-- Optional API layer for data persistence
-- Database for long-term storage
-- Deployment pipeline for production builds
-
-## Project Structure
+## 10. Repository Layout
 
 ```bash
 my-truck-update/
@@ -84,184 +225,135 @@ my-truck-update/
 │   ├── services/
 │   ├── utils/
 │   ├── types/
-│   └── main.ts
+│   └── app/
 ├── public/
 │   └── assets/
 ├── styles/
+├── tests/
 ├── package.json
 ├── tsconfig.json
 ├── README.md
+├── .env.example
 ├── .gitignore
 ├── LICENSE
-└── .env.example
+└── docs/
 ```
 
-## Getting Started
+## 11. Development Workflow
 
-### Prerequisites
+### Local Development
+1. Clone repository
+2. Install dependencies
+3. Run dev server
+4. Connect local UI to mock or API data
+5. Validate core workflows
 
-Before running the project, make sure you have installed:
+### Build Pipeline
+1. Type-check TypeScript
+2. Run linting and formatting
+3. Run unit and integration tests
+4. Build production bundle
+5. Deploy to configured environment
 
-- Node.js 18 or later
-- npm or yarn
+## 12. Security Architecture
 
-### Installation
+The system should adopt the following practices as it matures:
+
+- enforce authentication for protected routes
+- secure session and token handling
+- validate all user input on both client and server
+- protect API endpoints with authorization
+- store secrets using environment variables or secret managers
+- enforce CORS and request validation rules
+- sanitize data before output to prevent injection vulnerabilities
+
+## 13. Observability and Reliability
+
+Important operational capabilities for future production deployment:
+
+- request logging
+- API error tracking
+- application health checks
+- performance metrics
+- structured error reporting
+- monitoring of background jobs and scheduled tasks
+
+## 14. Scalability Considerations
+
+The architecture is designed to grow with business needs:
+
+- add more vehicle records without changing core UI workflows
+- support multiple users and roles
+- support fleet-level dashboards and reporting
+- add notification workflows and scheduled reminders
+- move from local persistence to a production database and API
+
+### Horizontal Scaling
+Future scalability can be supported by:
+- stateless frontend hosting
+- independent API services
+- load-balanced application instances
+- database clustering or replication
+
+## 15. Risks and Constraints
+
+- Initial implementation may not yet include backend persistence
+- User roles and permissions need definition before multi-user rollout
+- Data integrity rules must be enforced centrally
+- API and database design must be planned before scaling the app
+- Some features may require stronger error handling and reporting infrastructure
+
+## 16. Future Architecture Roadmap
+
+### Phase 1: Frontend Foundation
+- TypeScript UI
+- data models
+- maintenance tracking flows
+- local persistence or mock API responses
+
+### Phase 2: Backend API
+- REST endpoints
+- authentication
+- database integration
+- validation middleware
+
+### Phase 3: Fleet Management Features
+- richer reporting
+- reminders and alerts
+- fleet dashboards
+- user role management
+
+### Phase 4: Production Hardening
+- deployment automation
+- observability
+- security reviews
+- performance optimization
+
+## 17. Summary
+
+My Truck Update is designed as a modular, TypeScript-driven application that can grow from a vehicle tracking dashboard into a production-grade fleet operations platform. The software architecture emphasizes maintainability, extensibility, and future-ready design, allowing the project to evolve without a disruptive rewrite.
+
+The first version focuses on clarity and operational utility. The architecture provides a strong foundation for adding persistence, APIs, user management, analytics, and enterprise-grade deployment patterns in future iterations.
+
+## 18. Appendix: Example Runtime Flow
+
+```text
+User -> Frontend UI -> TypeScript Services -> Data Store / API -> Database
+    |                  |                      |                 |
+    |                  |                      |                 +-> persistence layer
+    |                  |                      +-> validation/business rules
+    |                  +-> state rendering + error handling
+```
+
+## 19. Appendix: Suggested Commands
 
 ```bash
-git clone https://github.com/awalahimed/my-truck-update.git
-cd my-truck-update
 npm install
-```
-
-### Development
-
-Run the application locally:
-
-```bash
 npm run dev
-```
-
-### Production Build
-
-```bash
 npm run build
-npm run start
+npm run test
 ```
 
-## Environment Configuration
+## 20. License
 
-Create a `.env` file in the root directory if your project requires runtime variables:
-
-```env
-API_URL=http://localhost:3000
-NODE_ENV=development
-```
-
-You can also use a `.env.example` file to document required environment variables for contributors.
-
-## Usage
-
-1. Launch the app locally.
-2. Create or manage truck profiles.
-3. Track maintenance or status updates.
-4. Review the dashboard for total activity and current information.
-5. Extend the app with additional features such as alerts, filters, and reporting.
-
-## Roadmap
-
-### Phase 1
-- Basic truck profile management
-- Maintenance records
-- Dashboard overview
-- Responsive UI
-
-### Phase 2
-- User authentication
-- Search and filtering
-- Multi-vehicle dashboard
-- Notifications and reminders
-
-### Phase 3
-- Backend API and database integration
-- Reporting and analytics
-- Fleet-level insights
-- Deployment automation and CI/CD
-
-## API and Data Model (Planned)
-
-The project is expected to include core data entities such as:
-
-- Truck
-  - id
-  - make
-  - model
-  - year
-  - VIN
-  - status
-  - lastUpdated
-- Maintenance Record
-  - id
-  - truckId
-  - title
-  - description
-  - date
-  - notes
-- User
-  - id
-  - name
-  - email
-  - role
-
-## Security Considerations
-
-As this application grows, important security practices should include:
-
-- input validation
-- secure authentication and session management
-- environment variable protection
-- least-privilege access control
-- secure API endpoints
-- data sanitization before rendering
-
-## Contributing
-
-Contributions are welcome.
-
-1. Fork the repository.
-2. Create a feature branch:
-
-```bash
-git checkout -b feature/my-feature
-```
-
-3. Make your changes and commit them:
-
-```bash
-git commit -m "Add my feature"
-```
-
-4. Push the branch:
-
-```bash
-git push origin feature/my-feature
-```
-
-5. Open a pull request.
-
-## Testing
-
-Recommended testing approach for this project:
-
-- unit tests for TypeScript logic
-- component tests for UI behavior
-- integration tests for API endpoints
-- smoke tests for core workflows
-
-Example:
-
-```bash
-npm test
-```
-
-## Deployment
-
-This project can be deployed in several ways depending on the final architecture:
-
-- static hosting for front-end-only deployment
-- containerized deployment using Docker
-- cloud hosting for a full-stack version
-- CI/CD pipeline for automated builds and deployment
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Contact
-
-For questions, collaboration, or feature suggestions, please reach out through the project maintainer on GitHub:
-
-https://github.com/awalahimed
-
-## Summary
-
-My Truck Update is a practical and scalable solution for managing truck information and operational tasks in one place. It is positioned as a useful tool for both individual operators and small fleet managers, with room to grow into a broader platform over time.
+This project is licensed under the MIT License. See the LICENSE file for details.
