@@ -4,9 +4,9 @@
 
 ## 1. Overview
 
-My Truck Update is a truck operations and maintenance tracking application designed to help individual truck owners and fleet managers record vehicle status, service events, and operational updates in a centralized system. The platform is currently structured as a TypeScript-based application with a lightweight front-end layer and a clear path toward backend services, persistence, and scalability.
+My Truck Update is a truck operations and maintenance tracking application designed to help individual truck owners and fleet managers record vehicle status, service events, and operational updates.
 
-The system architecture is intentionally modular so that it can evolve from a simple dashboard-style web app into a production-ready fleet management platform with authentication, data persistence, analytics, and deployment automation.
+The system architecture is intentionally modular so that it can evolve from a simple dashboard-style web app into a production-ready fleet management platform with authentication, data persistence, reporting, and operational tooling.
 
 ## 2. Goals and Non-Goals
 
@@ -35,7 +35,7 @@ The system architecture is intentionally modular so that it can evolve from a si
 
 ## 4. System Context
 
-The application sits between users and truck operational data. Users interact with the system to create truck records, update statuses, and maintain service-related information. The app can be deployed as a front-end-only experience initially and expanded into a full-stack solution later.
+The application sits between users and truck operational data. Users interact with the system to create truck records, update statuses, and maintain service-related information. The app can be deployed in a local or production environment and can evolve to support fleet-scale workflows over time.
 
 Actors:
 - Truck owner
@@ -80,7 +80,7 @@ At a high level, the architecture follows a layered model:
 ## 6. Proposed Runtime Architecture
 
 ### Current State
-The project is currently best described as a front-end TypeScript application. It likely renders pages and manages UI state in the browser, with app logic expressed as modular TypeScript functions and components.
+The project is currently best described as a front-end TypeScript application. It likely renders pages and manages UI state in the browser, with app logic expressed as modular TypeScript functions and service abstractions.
 
 ### Target State
 The target architecture is a web application with a clear separation of responsibilities:
@@ -331,9 +331,9 @@ Future scalability can be supported by:
 
 ## 17. Summary
 
-My Truck Update is designed as a modular, TypeScript-driven application that can grow from a vehicle tracking dashboard into a production-grade fleet operations platform. The software architecture emphasizes maintainability, extensibility, and future-ready design, allowing the project to evolve without a disruptive rewrite.
+My Truck Update is designed as a modular, TypeScript-driven application that can grow from a vehicle tracking dashboard into a production-grade fleet operations platform. The software architecture is intentionally simple at the start while providing a scalable foundation for persistence, APIs, analytics, and broader operational workflows.
 
-The first version focuses on clarity and operational utility. The architecture provides a strong foundation for adding persistence, APIs, user management, analytics, and enterprise-grade deployment patterns in future iterations.
+The first version focuses on clarity and operational utility. The architecture provides a strong foundation for adding persistence, APIs, user management, analytics, and enterprise-grade deployment workflows over time.
 
 ## 18. Appendix: Example Runtime Flow
 
@@ -354,6 +354,217 @@ npm run build
 npm run test
 ```
 
-## 20. License
+## 20. Additional Repository Overview: My-track
+
+# My-track
+
+My-track is a full-stack TypeScript application for a logistics and order-management platform. The repository contains a backend API, a web dashboard, and a mobile application for drivers and users.
+
+## Overview
+
+This project is structured as a multi-service application:
+
+- `backend/` — Hono-based API server, database layer, auth, business logic, and scheduled jobs
+- `frontend/` — React + Vite web dashboard/admin UI
+- `frontend-app/` — Expo + React Native mobile app for users and drivers
+
+## Tech stack
+
+### Backend
+- TypeScript
+- Hono
+- MySQL via Drizzle ORM
+- Better Auth
+- JWT-based auth
+- WebSockets for real-time updates
+- Firebase Admin
+- SMTP and SMS integrations
+- Cron jobs for scheduled tasks
+- File uploads and APK download support
+
+### Web frontend
+- React
+- Vite
+- TypeScript
+- Tailwind CSS
+- TanStack Query
+- Radix UI primitives
+- Recharts and map components
+
+### Mobile app
+- Expo
+- React Native
+- Expo Router
+- Secure storage
+- Notifications
+- Location and image support
+- Native mobile UI patterns
+
+## Project structure
+
+```text
+My-track/
+├── backend/
+│   ├── src/
+│   ├── dist/
+│   ├── package.json
+│   ├── drizzle.config.ts
+│   ├── .env.example
+│   └── render.yaml
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   └── vite.config.ts
+├── frontend-app/
+│   ├── app/
+│   ├── components/
+│   ├── hooks/
+│   ├── package.json
+│   └── app.json
+├── .cpanel.yml
+├── docker-compose.yml
+├── build-frontend-to-backend.sh
+├── README.md
+└── package.json (if present at repo root)
+```
+
+## Main features
+
+- Admin dashboard and management screens
+- Driver, manager, and customer workflows
+- Order creation and tracking
+- Payments and wallet features
+- Referral system
+- Notifications and announcements
+- Driver document onboarding
+- Real-time WebSocket communication
+- Secure authentication and user access controls
+- Backend scheduled jobs for cleanup, fraud scans, and tier recalculation
+
+## Backend responsibilities
+
+The backend server is initialized in `backend/src/index.ts` and provides:
+
+- `/health` health-check endpoint
+- `/api/auth/*` authentication routes
+- `/rpc/*` RPC API routes
+- `/uploads/*` static file serving
+- `/api/app/download-apk` for app package download
+- SPA serving for built frontend assets
+
+It also includes:
+
+- database schema definitions under `backend/src/database/schema/`
+- business logic under `backend/src/controllers/`
+- middleware for auth, context, rate limiting, and IP restrictions
+- jobs for scheduled maintenance under `backend/src/jobs/`
+
+## Web app
+
+The web frontend is a dashboard and management platform for operations staff. It includes pages for:
+
+- admin dashboards and analytics
+- user management
+- manager views
+- agent workflows
+- referral setup and analytics
+- order management
+- wallet views
+- announcements and app upload pages
+
+## Mobile app
+
+The mobile app is built with Expo and is used for order-related activities, onboarding, wallet management, and driver workflows.
+
+Typical modules include:
+
+- auth flow (login, onboarding, forgot password, registration)
+- user home and wallet screens
+- driver dashboards and assigned orders
+- shared notifications and profile screens
+- order tracking and payment flows
+
+## Environment setup
+
+### Backend
+
+Create a `.env` file in `backend/` based on the values in `.env.example`.
+
+Required configuration commonly includes:
+
+- MySQL database settings
+- JWT secret and expiry
+- CORS origins
+- SMTP settings
+- SMS API credentials
+- Chapa payment keys
+
+### Web frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Mobile app
+
+```bash
+cd frontend-app
+npm install
+npx expo start
+```
+
+### Backend
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+## Production build
+
+### Frontend
+
+```bash
+cd frontend
+npm run build
+```
+
+### Backend
+
+```bash
+cd backend
+npm run build
+```
+
+## Deployment notes
+
+The repository includes a `cPanel` deployment config in `.cpanel.yml` to deploy the backend and static frontend build to a hosting environment. It also creates upload directories and installs production dependencies.
+
+## License
+
+No explicit license file is present in the current repository snapshot, so the project may currently be unlicensed unless otherwise stated by the repository owner.
+
+## Notes
+
+This repo appears to be a private project and may have additional internal business logic not fully documented here. The codebase itself is the best source of truth for current functionality.
+
+## Useful starting points
+
+- `backend/src/index.ts` — server entry point
+- `backend/src/config/env_config.ts` — environment config
+- `backend/src/routes/_app.ts` — route registration
+- `backend/src/database/schema/` — database schema definitions
+- `frontend/src/pages/` — web app pages
+- `frontend-app/app/` — mobile app navigation and screens
+
+## Summary
+
+My-track is a transport/logistics platform with a multi-role system for users, drivers, managers, and admins, combining a web dashboard, mobile application, and backend API into a single TypeScript monorepo-style setup.
+
+## 21. License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
